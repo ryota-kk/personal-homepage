@@ -103,9 +103,16 @@ function updatePhotoPositions(deltaZ = 0) {
     const blurAmount = Math.abs(photo.currentZ) / 100;
     photo.element.style.filter = `blur(${blurAmount}px)`;
 
-    // Opacity based on distance
-    const opacity = photo.currentZ > -800 && photo.currentZ < 300 ? 1 : 0;
-    photo.element.style.opacity = opacity;
+    // Opacity and visibility optimization
+    const isVisible = photo.currentZ > -800 && photo.currentZ < 300;
+    photo.element.style.opacity = isVisible ? 1 : 0;
+
+    // Performance: remove will-change when not visible
+    if (isVisible && photo.currentZ > -200 && photo.currentZ < 100) {
+      photo.element.style.willChange = 'transform, filter';
+    } else {
+      photo.element.style.willChange = 'auto';
+    }
   });
 
   // Reset manual scroll
@@ -186,3 +193,36 @@ window.gallerySystem = {
   pause: () => { isPaused = true; },
   resume: () => { isPaused = false; }
 };
+
+// Touch support for mobile
+let touchStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+  const track = document.getElementById('photoTrack');
+  if (!track) return;
+
+  const rect = track.getBoundingClientRect();
+  const touch = e.touches[0];
+
+  if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+      touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+    touchStartY = touch.clientY;
+  }
+});
+
+document.addEventListener('touchmove', (e) => {
+  if (touchStartY === 0) return;
+
+  const touch = e.touches[0];
+  const deltaY = touchStartY - touch.clientY;
+
+  if (Math.abs(deltaY) > 5) {
+    manualScrollDelta = deltaY > 0 ? SCROLL_DELTA : -SCROLL_DELTA;
+    touchStartY = touch.clientY;
+    e.preventDefault();
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', () => {
+  touchStartY = 0;
+});
