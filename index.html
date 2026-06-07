@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scene Scroll Portfolio</title>
+  <link rel="stylesheet" href="./styles.css?v=home-title-up-8mm" />
+</head>
+<body>
+  <div id="introOverlay" class="intro-overlay" aria-label="进入网站">
+    <video class="intro-bg-video" src="./assets/scene1.mp4?v=video-20260605-2" muted playsinline autoplay loop preload="auto"></video>
+    <div class="intro-atmosphere" aria-hidden="true"></div>
+    <button id="introEnterBtn" class="intro-enter-btn" type="button" aria-label="进入网站">
+      <span class="intro-enter-cn">进入网站</span>
+      <span class="intro-enter-en">ENTER SITE</span>
+    </button>
+    <audio id="introAudio" preload="auto"></audio>
+  </div>
+  <main class="site-shell" aria-label="场景滚动式个人网站">
+    <div class="video-stage" aria-hidden="true">
+      <video id="scene1Video" class="bg-video is-visible" src="./assets/scene1.mp4?v=video-20260605-2" muted playsinline autoplay loop preload="auto"></video>
+      <video id="transitionVideo" class="bg-video" src="./assets/transition_1_2.mp4?v=video-20260605-2" muted playsinline preload="auto"></video>
+      <video id="scene2Video" class="bg-video" src="./assets/scene2.mp4?v=video-20260605-2" muted playsinline preload="auto"></video>
+      <video id="scene2IdleVideo" class="bg-video" src="./assets/scene2_idle_loop.mp4?v=video-20260605-2" muted playsinline loop preload="auto"></video>
+      <video id="scene3Video" class="video-layer" muted playsinline loop>
+        <source src="assets/scene3.mp4" type="video/mp4">
+      </video>
+      <div class="cinema-vignette"></div>
+      <div class="grain"></div>
+    </div>
+
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="回到首页">
+        <span class="brand-mark"></span>
+        <span>RUAN / STUDIO</span>
+      </a>
+      <nav>
+        <button class="nav-dot is-active" data-go="scene1" aria-label="首页"></button>
+        <button class="nav-dot" data-go="scene2" aria-label="作品页"></button>
+        <button class="nav-dot" data-go="scene3" aria-label="相册页"></button>
+      </nav>
+    </header>
+
+    <div id="contentTrack" class="content-track" style="width: 300vw;">
+      <section class="page page-home" aria-labelledby="home-title">
+        <div class="hero-copy">
+          <h1 id="home-title">
+            <span class="home-title-line">欢迎来到，</span>
+            <span class="home-title-line home-title-line-offset">ryota的主页.</span>
+          </h1>
+          <div class="hero-actions">
+            <button id="enterBtn" class="primary-btn">向下滚动进入</button>
+            <span class="hint">Scroll Down</span>
+          </div>
+        </div>
+
+        <aside class="profile-card glass-panel">
+          <span class="small-label">Profile</span>
+          <h2>ryota</h2>
+          <p>在代码与想象之间，训练未来的轮廓。</p>
+          <dl>
+            <div><dt>Location</dt><dd>Kun Ming</dd></div>
+            <div><dt>Focus</dt><dd>Web · AI · Visual</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="page page-work" aria-labelledby="work-title">
+        <div class="work-layout">
+          <div class="section-copy">
+            <p class="eyebrow">Gallery / Projects / Contact</p>
+          </div>
+
+          <div class="content-grid">
+            <article class="glass-panel tile tile-large">
+              <span class="small-label">Album</span>
+              <h3>个人相册</h3>
+              <p>可以替换成旅行、生活、创作过程图片。建议采用 3–6 张精选图，不要铺太满。</p>
+            </article>
+            <article class="glass-panel tile">
+              <span class="small-label">Project 01</span>
+              <h3>位图转矢量工具</h3>
+              <p>展示你的工具入口、项目说明和在线试用按钮。</p>
+            </article>
+            <article class="glass-panel tile">
+              <span class="small-label">Project 02</span>
+              <h3>AI 视觉实验</h3>
+              <p>放置作品案例、动效片段或设计稿链接。</p>
+            </article>
+            <article class="glass-panel tile contact-tile">
+              <span class="small-label">Contact</span>
+              <h3>联系我</h3>
+              <p>email@example.com<br />微信 / Instagram / GitHub</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Page 3: Gallery -->
+      <section class="page page-gallery" aria-labelledby="gallery-title">
+        <div class="gallery-3d-stage">
+          <div class="photo-track" id="photoTrack">
+            <!-- Photos injected by gallery-3d.js -->
+          </div>
+        </div>
+
+        <div class="photo-detail-overlay" id="photoDetail">
+          <div class="detail-content">
+            <img class="detail-image" id="detailImage" src="" alt="">
+            <div class="detail-info">
+              <h2 class="detail-title" id="detailTitle"></h2>
+              <p class="detail-description" id="detailDescription"></p>
+              <time class="detail-date" id="detailDate"></time>
+            </div>
+            <button class="detail-close" id="detailClose">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="progress-ui" aria-hidden="true">
+      <span id="stateText">Scene 01 · Idle Loop</span>
+      <span class="progress-line"><i id="progressBar"></i></span>
+    </div>
+  </main>
+
+  <script src="./script.js?v=intro-2"></script>
+  <script src="./gallery-3d.js"></script>
+  <script src="./gallery-focus.js"></script>
+  <script src="./water-ripple.js?v=4"></script>
+  <script src="./audio-spectrum.js?v=4"></script>
+  <script src="./audio-control.js?v=2"></script>
+  <script src="./effects-init.js?v=2"></script>
+</body>
+</html>
