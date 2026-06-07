@@ -2,6 +2,18 @@
 // Gallery 3D Photo Stream System
 // ============================================
 
+// Throttle helper
+function throttle(fn, delay) {
+  let lastCall = 0;
+  return function(...args) {
+    const now = Date.now();
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      fn.apply(this, args);
+    }
+  };
+}
+
 const PHOTOS = [
   { id: 1, src: 'assets/gallery/photo1.jpg', title: '废墟中的生机', description: '后末日城市中，自然重新占领了曾经的工业遗迹。', date: '2026.06', initialZ: -800, direction: 1 },
   { id: 2, src: 'assets/gallery/photo2.jpg', title: '霓虹幻影', description: '破碎的广告牌依然闪烁着过去的繁华。', date: '2026.05', initialZ: -600, direction: 1 },
@@ -47,6 +59,13 @@ function createPhotoElements() {
 
     card.appendChild(img);
     track.appendChild(card);
+
+    // Click to focus
+    card.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('gallery:focus', {
+        detail: { photoId: photo.id }
+      }));
+    });
 
     photoElements.push({
       element: card,
@@ -114,7 +133,7 @@ window.addEventListener('gallery:wheel', (e) => {
   manualScrollDelta = delta > 0 ? SCROLL_DELTA : -SCROLL_DELTA;
 });
 
-document.addEventListener('mousemove', (e) => {
+const handleMouseMove = throttle((e) => {
   const track = document.getElementById('photoTrack');
   if (!track) return;
 
@@ -142,7 +161,9 @@ document.addEventListener('mousemove', (e) => {
   if (!hoveredCard) {
     isPaused = false;
   }
-});
+}, 100); // 100ms throttle
+
+document.addEventListener('mousemove', handleMouseMove);
 
 // Initialize when DOM ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -157,3 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// Export for gallery-focus.js
+window.gallerySystem = {
+  getPhotoById: (id) => PHOTOS.find(p => p.id === id),
+  getAllPhotos: () => PHOTOS,
+  pause: () => { isPaused = true; },
+  resume: () => { isPaused = false; }
+};
