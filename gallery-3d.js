@@ -195,7 +195,7 @@ window.gallerySystem = {
 };
 
 // Touch support for mobile
-let touchStartY = 0;
+let galleryTouchStartY = 0;
 
 document.addEventListener('touchstart', (e) => {
   const track = document.getElementById('photoTrack');
@@ -206,23 +206,23 @@ document.addEventListener('touchstart', (e) => {
 
   if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
       touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-    touchStartY = touch.clientY;
+    galleryTouchStartY = touch.clientY;
   }
 });
 
 document.addEventListener('touchmove', (e) => {
-  if (touchStartY === 0) return;
+  if (galleryTouchStartY === 0) return;
 
   const touch = e.touches[0];
-  const deltaY = touchStartY - touch.clientY;
+  const deltaY = galleryTouchStartY - touch.clientY;
 
   if (Math.abs(deltaY) > 5) {
     manualScrollDelta = deltaY > 0 ? SCROLL_DELTA : -SCROLL_DELTA;
-    touchStartY = touch.clientY;
+    galleryTouchStartY = touch.clientY;
     e.preventDefault();
   }
 }, { passive: false });
 
 document.addEventListener('touchend', () => {
-  touchStartY = 0;
+  galleryTouchStartY = 0;
 });
