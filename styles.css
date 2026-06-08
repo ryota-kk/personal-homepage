@@ -999,14 +999,19 @@ h3 {
 /* Mobile responsive */
 @media (max-width: 768px) {
   .gallery-3d-stage {
-    perspective: 800px;
+    padding-right: 2vw;
+    gap: 15px;
+  }
+
+  .photo-column {
+    width: 240px;
+    height: 70vh;
   }
 
   .photo-card {
-    width: 200px;
-    height: 143px;
-    margin-left: -100px;
-    margin-top: -71px;
+    width: 220px;
+    height: 160px;
+    border-radius: 8px;
   }
 
   .detail-content {
@@ -1033,11 +1038,32 @@ h3 {
 }
 
 @media (max-width: 480px) {
-  .photo-card {
+  .gallery-3d-stage {
+    padding-right: 1vw;
+    padding-left: 1vw;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .photo-column {
     width: 160px;
-    height: 114px;
-    margin-left: -80px;
-    margin-top: -57px;
+    height: 60vh;
+  }
+
+  .photo-card {
+    width: 150px;
+    height: 110px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+  }
+
+  /* 禁用 3D 效果以提升性能 */
+  .photo-card.is-hovered::before {
+    opacity: 0.5;
+  }
+
+  .photo-card .shine-overlay {
+    display: none;
   }
 
   .detail-title {
