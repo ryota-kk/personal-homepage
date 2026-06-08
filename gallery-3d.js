@@ -48,48 +48,59 @@ function createPhotoElements() {
   rightColumn.innerHTML = '';
   photoElements = [];
 
+  // 为每张照片创建 DOM 元素（原始 + 1 个克隆）
   PHOTOS.forEach(photo => {
-    const card = document.createElement('div');
-    card.className = 'photo-card';
-    card.dataset.photoId = photo.id;
-
-    const img = document.createElement('img');
-    img.src = photo.src;
-    img.alt = photo.title;
-    img.className = 'photo-image';
-
-    const shineOverlay = document.createElement('div');
-    shineOverlay.className = 'shine-overlay';
-
-    // 添加信息层（用于分层效果）
-    const infoOverlay = document.createElement('div');
-    infoOverlay.className = 'photo-info-overlay';
-    infoOverlay.innerHTML = `
-      <div class="photo-title">${photo.title}</div>
-      <div class="photo-date">${photo.date}</div>
-    `;
-
-    card.appendChild(img);
-    card.appendChild(shineOverlay);
-    card.appendChild(infoOverlay);
-
     const targetColumn = photo.column === 'left' ? leftColumn : rightColumn;
-    targetColumn.appendChild(card);
 
-    photoElements.push({
-      element: card,
-      img: img,
-      shineOverlay: shineOverlay,
-      infoOverlay: infoOverlay,
-      data: photo,
-      currentY: photo.initialY
-    });
+    // 创建原始照片和克隆照片
+    for (let clone = 0; clone < 2; clone++) {
+      const card = document.createElement('div');
+      card.className = 'photo-card';
+      card.dataset.photoId = photo.id;
+
+      const img = document.createElement('img');
+      img.src = photo.src;
+      img.alt = photo.title;
+      img.className = 'photo-image';
+
+      const shineOverlay = document.createElement('div');
+      shineOverlay.className = 'shine-overlay';
+
+      const infoOverlay = document.createElement('div');
+      infoOverlay.className = 'photo-info-overlay';
+      infoOverlay.innerHTML = `
+        <div class="photo-title">${photo.title}</div>
+        <div class="photo-date">${photo.date}</div>
+      `;
+
+      card.appendChild(img);
+      card.appendChild(shineOverlay);
+      card.appendChild(infoOverlay);
+      targetColumn.appendChild(card);
+
+      // 计算初始位置：克隆在原始照片后方 1500px
+      const totalScrollHeight = TOTAL_HEIGHT * 6; // 1500px
+      const offsetY = clone * totalScrollHeight;
+
+      photoElements.push({
+        element: card,
+        img: img,
+        shineOverlay: shineOverlay,
+        infoOverlay: infoOverlay,
+        data: photo,
+        currentY: photo.initialY + offsetY,
+        isClone: clone === 1
+      });
+    }
   });
 
   setupCardHoverEffects();
 }
 
 function updatePhotoPositions() {
+  const columnHeight = window.innerHeight * 0.8; // 80vh
+  const totalScrollHeight = TOTAL_HEIGHT * 6; // 1500px (6 photos * 250px)
+
   photoElements.forEach(item => {
     const { element, data } = item;
 
@@ -97,21 +108,16 @@ function updatePhotoPositions() {
     const direction = data.column === 'left' ? -1 : 1;
     item.currentY += SCROLL_SPEED * direction;
 
-    // 无缝循环 - 使用大缓冲区确保在视口外完成位置重置
-    const columnHeight = window.innerHeight * 0.8; // 80vh
-    const totalScrollHeight = TOTAL_HEIGHT * 6; // 1500px (6 photos * 250px)
-    const buffer = 500; // 足够大的缓冲区，确保照片完全移出视口
-
-    // 左列：向上移动，移出顶部后循环到底部
+    // 无缝循环：当照片/克隆移出视口时，跳到另一端
+    // 关键：因为有克隆在后方，所以跳跃发生时，用户看到的是克隆在继续移动
     if (data.column === 'left') {
-      while (item.currentY < -buffer) {
+      // 左列向上移动：当移出顶部时，跳到底部
+      if (item.currentY < -CARD_HEIGHT) {
         item.currentY += totalScrollHeight;
       }
-    }
-
-    // 右列：向下移动，移出底部后循环到顶部
-    if (data.column === 'right') {
-      while (item.currentY > columnHeight + buffer) {
+    } else {
+      // 右列向下移动：当移出底部时，跳到顶部
+      if (item.currentY > columnHeight) {
         item.currentY -= totalScrollHeight;
       }
     }
