@@ -56,19 +56,31 @@ function createPhotoElements() {
     const img = document.createElement('img');
     img.src = photo.src;
     img.alt = photo.title;
+    img.className = 'photo-image';
 
     const shineOverlay = document.createElement('div');
     shineOverlay.className = 'shine-overlay';
 
+    // 添加信息层（用于分层效果）
+    const infoOverlay = document.createElement('div');
+    infoOverlay.className = 'photo-info-overlay';
+    infoOverlay.innerHTML = `
+      <div class="photo-title">${photo.title}</div>
+      <div class="photo-date">${photo.date}</div>
+    `;
+
     card.appendChild(img);
     card.appendChild(shineOverlay);
+    card.appendChild(infoOverlay);
 
     const targetColumn = photo.column === 'left' ? leftColumn : rightColumn;
     targetColumn.appendChild(card);
 
     photoElements.push({
       element: card,
+      img: img,
       shineOverlay: shineOverlay,
+      infoOverlay: infoOverlay,
       data: photo,
       currentY: photo.initialY
     });
@@ -118,7 +130,7 @@ function stopPhotoLoop() {
 
 function setupCardHoverEffects() {
   photoElements.forEach(item => {
-    const { element, shineOverlay } = item;
+    const { element, img, shineOverlay, infoOverlay } = item;
 
     element.addEventListener('mouseenter', () => {
       if (!isPaused) isPaused = true;
@@ -127,8 +139,10 @@ function setupCardHoverEffects() {
 
     element.addEventListener('mouseleave', () => {
       element.classList.remove('is-hovered');
-      // 只保留 translateY，移除所有 3D 变换
+      // 重置所有元素的变换
       element.style.transform = `translateY(${item.currentY}px)`;
+      img.style.transform = '';
+      infoOverlay.style.transform = '';
       shineOverlay.style.setProperty('--mouse-x', '50%');
       shineOverlay.style.setProperty('--mouse-y', '50%');
     });
@@ -148,8 +162,14 @@ function setupCardHoverEffects() {
       const rotateY = normalizedX * 15;
       const rotateX = -normalizedY * 15;
 
-      // 应用 3D 变换
-      element.style.transform = `translateY(${item.currentY}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+      // 应用 3D 变换到卡片容器
+      element.style.transform = `translateY(${item.currentY}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(30px)`;
+
+      // 分层效果：图片轻微提升
+      img.style.transform = `translateZ(20px)`;
+
+      // 分层效果：信息层更高
+      infoOverlay.style.transform = `translateZ(50px)`;
 
       // 更新光泽位置
       const mouseXPercent = (x / rect.width) * 100;
