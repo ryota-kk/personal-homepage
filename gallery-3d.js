@@ -36,7 +36,7 @@ const TRACK_HEIGHT_FALLBACK = (CARD_HEIGHT + CARD_GAP) * 6;
 let photoElements = [];
 let trackState = null;
 let rafId = null;
-let isPaused = false;
+let pausedColumns = { left: false, right: false }; // 分列暂停状态
 let hoverWatcherBound = false;
 
 function createPhotoCard(photo) {
@@ -154,9 +154,12 @@ function normalizeTrackOffset(track) {
 }
 
 function updatePhotoPositions() {
-  if (!trackState || isPaused) return;
+  if (!trackState) return;
 
-  Object.values(trackState).forEach(track => {
+  Object.entries(trackState).forEach(([columnName, track]) => {
+    // 检查该列是否被暂停
+    if (pausedColumns[columnName]) return;
+
     track.offset += SCROLL_SPEED * track.direction;
     normalizeTrackOffset(track);
     track.element.style.transform = `translateY(${track.offset}px)`;
@@ -183,10 +186,11 @@ function stopPhotoLoop() {
 
 function setupCardHoverEffects() {
   photoElements.forEach(item => {
-    const { element, img, shineOverlay, infoOverlay } = item;
+    const { element, img, shineOverlay, infoOverlay, data } = item;
 
     element.addEventListener('mouseenter', () => {
-      isPaused = true;
+      // 只暂停该照片所属的列
+      pausedColumns[data.column] = true;
       element.classList.add('is-hovered');
     });
 
@@ -228,14 +232,17 @@ function setupCardHoverEffects() {
   if (hoverWatcherBound) return;
   hoverWatcherBound = true;
 
+  // 监听全局鼠标移动，检测每列是否还有悬停的卡片
   document.addEventListener('mousemove', throttle(() => {
-    const anyHovered = photoElements.some(item =>
-      item.element.classList.contains('is-hovered')
-    );
+    ['left', 'right'].forEach(columnName => {
+      const columnHasHover = photoElements.some(item =>
+        item.data.column === columnName && item.element.classList.contains('is-hovered')
+      );
 
-    if (!anyHovered && isPaused) {
-      isPaused = false;
-    }
+      if (!columnHasHover && pausedColumns[columnName]) {
+        pausedColumns[columnName] = false;
+      }
+    });
   }, 100));
 }
 
@@ -254,6 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
 window.gallerySystem = {
   getPhotoById: (id) => PHOTOS.find(photo => photo.id === id),
   getAllPhotos: () => PHOTOS,
-  pause: () => { isPaused = true; },
-  resume: () => { isPaused = false; }
+  pause: () => {
+    pausedColumns.left = true;
+    pausedColumns.right = true;
+  },
+  resume: () => {
+    pausedColumns.left = false;
+    pausedColumns.right = false;
+  }
 };
