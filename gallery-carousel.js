@@ -75,7 +75,7 @@ class GalleryCarousel {
     slide.innerHTML = `
       <div class="carousel-slide-content">
         <div class="carousel-image-wrapper">
-          <img src="${photo.src}" alt="${photo.title}" class="carousel-image" />
+          <img data-src="${photo.src}" alt="${photo.title}" class="carousel-image" loading="lazy" />
         </div>
         <div class="carousel-info">
           <h2 class="carousel-title">${photo.title}</h2>
@@ -86,6 +86,26 @@ class GalleryCarousel {
     `;
 
     return slide;
+  }
+
+  // 懒加载图片
+  loadImage(index) {
+    const slide = this.slides[index];
+    if (!slide) return;
+
+    const img = slide.querySelector('.carousel-image');
+    if (img && img.dataset.src && !img.src) {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    }
+  }
+
+  // 预加载相邻图片
+  preloadAdjacentImages() {
+    // 加载当前、前一张、后一张
+    this.loadImage(this.currentIndex);
+    this.loadImage(this.currentIndex - 1);
+    this.loadImage(this.currentIndex + 1);
   }
 
   bindEvents() {
@@ -210,14 +230,33 @@ class GalleryCarousel {
   }
 
   updateSlides() {
+    // 预加载相邻图片
+    this.preloadAdjacentImages();
+
     // 更新计数器
     this.currentCounter.textContent = this.currentIndex + 1;
 
-    // 更新所有滑块的位置和状态
+    // 只更新可见范围内的滑块（当前 + 前后各1张）
+    const visibleRange = 2; // 可见范围
+
     this.slides.forEach((slide, index) => {
       const offset = index - this.currentIndex;
+      const isInRange = Math.abs(offset) <= visibleRange;
 
-      slide.classList.remove('is-active', 'is-prev', 'is-next');
+      slide.classList.remove('is-active', 'is-prev', 'is-next', 'is-hidden');
+
+      if (!isInRange) {
+        // 不在可见范围，完全隐藏以节省性能
+        slide.classList.add('is-hidden');
+        slide.style.transform = 'translateX(0) scale(0.5)';
+        slide.style.opacity = '0';
+        slide.style.zIndex = '0';
+        slide.style.visibility = 'hidden';
+        return;
+      }
+
+      // 在可见范围内，正常处理
+      slide.style.visibility = 'visible';
 
       if (offset === 0) {
         slide.classList.add('is-active');
@@ -236,7 +275,7 @@ class GalleryCarousel {
         slide.style.zIndex = '5';
       } else {
         slide.style.transform = `translateX(${offset * 100}%) scale(0.7)`;
-        slide.style.opacity = '0';
+        slide.style.opacity = '0.2';
         slide.style.zIndex = '1';
       }
     });
