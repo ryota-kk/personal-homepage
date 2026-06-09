@@ -13,12 +13,22 @@ const detailDate = document.getElementById('detailDate');
 const closeButton = document.getElementById('detailClose');
 
 function enterFocusMode(photoId) {
-  if (!window.gallerySystem) return;
+  console.log('enterFocusMode called with:', photoId);
+
+  if (!window.gallerySystem) {
+    console.error('gallerySystem not available');
+    return;
+  }
 
   const photo = window.gallerySystem.getPhotoById(photoId);
-  if (!photo) return;
+  console.log('Found photo:', photo);
 
-  currentPhotoId = photoId;
+  if (!photo) {
+    console.error('Photo not found for id:', photoId);
+    return;
+  }
+
+  currentPhotoId = photo.id;
   isActive = true;
 
   // Pause photo flow
@@ -31,11 +41,15 @@ function enterFocusMode(photoId) {
   detailDescription.textContent = photo.description;
   detailDate.textContent = photo.date;
 
+  console.log('Image src set to:', photo.src);
+  console.log('Overlay element:', overlay);
+
   // Show overlay
   overlay.classList.add('is-active');
 
   // Prevent body scroll
   document.body.style.overflow = 'hidden';
+}
 }
 
 function exitFocusMode() {
@@ -96,7 +110,12 @@ document.addEventListener('keydown', (e) => {
 
 // Listen for focus requests
 window.addEventListener('gallery:focus', (e) => {
-  enterFocusMode(e.detail.photoId);
+  const detail = e.detail;
+  const photoId = typeof detail === 'object' && detail !== null
+    ? detail.photoId || detail.id || detail
+    : detail;
+
+  enterFocusMode(photoId);
 });
 
 // Close button
