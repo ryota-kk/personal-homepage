@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scene Scroll Portfolio</title>
-  <link rel="stylesheet" href="./styles.css?v=home-title-up-8mm" />
+  <link rel="stylesheet" href="./styles.css?v=gallery-track-loop" />
 </head>
 <body>
   <div id="introOverlay" class="intro-overlay" aria-label="进入网站">
@@ -106,22 +106,7 @@
             <!-- Even photos (向下移动) injected by gallery-3d.js -->
           </div>
         </div>
-
-        <div class="photo-detail-overlay" id="photoDetail">
-          <div class="detail-content">
-            <img class="detail-image" id="detailImage" src="" alt="">
-            <div class="detail-info">
-              <h2 class="detail-title" id="detailTitle"></h2>
-              <p class="detail-description" id="detailDescription"></p>
-              <time class="detail-date" id="detailDate"></time>
-            </div>
-            <button class="detail-close" id="detailClose">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-        </div>
+        <!-- Carousel overlay will be dynamically created by gallery-carousel.js -->
       </section>
     </div>
 
@@ -131,9 +116,9 @@
     </div>
   </main>
 
-  <script src="./script.js?v=intro-2"></script>
-  <script src="./gallery-3d.js"></script>
-  <script src="./gallery-focus.js"></script>
+  <script src="./script.js?v=scene3-wheel-up-back"></script>
+  <script src="./gallery-3d.js?v=track-loop"></script>
+  <script src="./gallery-carousel.js?v=carousel-preview"></script>
   <script src="./water-ripple.js?v=4"></script>
   <script src="./audio-spectrum.js?v=4"></script>
   <script src="./audio-control.js?v=2"></script>

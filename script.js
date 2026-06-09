@@ -23,6 +23,7 @@ let scene2Duration = 8.767;
 let scene2IdleStarted = false;
 let lastWheelAt = 0;
 let touchStartY = 0;
+let scene2SkipStarted = false;
 
 const setRootDuration = () => {
   const ms = Math.max(1200, transitionDuration * 1000);
@@ -151,6 +152,7 @@ const goScene2 = async () => {
   if (isLocked || phase !== 'scene1-idle') return;
   isLocked = true;
   scene2IdleStarted = false;
+  scene2SkipStarted = false;
   resetProgress();
 
   contentTrack.classList.add('is-moving');
@@ -163,6 +165,8 @@ const goScene2 = async () => {
 
   // CSS 横向移动和转场视频同步；视频 ended 后再启动第二场景动画。
   videos.transition.addEventListener('ended', () => {
+    videos.scene2.style.transition = '';
+    videos.scene2.style.opacity = '1';
     showOnly(['scene2']);
     pauseExcept(['scene2']);
 
@@ -172,13 +176,16 @@ const goScene2 = async () => {
   }, { once: true });
 };
 
-const goScene1 = () => {
-  if (isLocked || phase === 'transition') return;
+const goScene1 = ({ force = false } = {}) => {
+  if (!force && (isLocked || phase === 'transition')) return;
   isLocked = true;
+  scene2IdleStarted = true;
   contentTrack.classList.add('is-moving');
 
   showOnly(['scene1']);
   pauseExcept(['scene1']);
+  videos.scene2.style.transition = '';
+  videos.scene2.style.opacity = '1';
   videos.scene1.currentTime = 0;
   safePlay(videos.scene1);
 
@@ -187,18 +194,29 @@ const goScene1 = () => {
     setPhase('scene1-idle');
     resetProgress();
     isLocked = false;
+    scene2SkipStarted = false;
   }, Math.min(1200, transitionDuration * 1000));
 };
 
-const goScene3 = () => {
-  if (isLocked || phase !== 'scene2-idle') return;
+const goScene3 = ({ skipScene2Intro = false } = {}) => {
+  const canEnterFromScene2Intro = skipScene2Intro && phase === 'scene2-intro';
+  if (scene2SkipStarted || (!canEnterFromScene2Intro && (isLocked || phase !== 'scene2-idle'))) return;
+
+  if (canEnterFromScene2Intro) {
+    scene2SkipStarted = true;
+    scene2IdleStarted = true;
+  }
+
   isLocked = true;
+  setPhase('transition-2-3');
 
   // Fade out scene2
-  videos.scene2Idle.style.transition = 'opacity 0.8s ease';
-  videos.scene2Idle.style.opacity = '0';
+  const outgoingScene2 = canEnterFromScene2Intro ? videos.scene2 : videos.scene2Idle;
+  outgoingScene2.style.transition = canEnterFromScene2Intro ? 'opacity 0.35s ease' : 'opacity 0.8s ease';
+  outgoingScene2.style.opacity = '0';
 
   setTimeout(() => {
+    videos.scene2.pause();
     videos.scene2Idle.pause();
     showOnly([]);
 
@@ -221,12 +239,30 @@ const goScene3 = () => {
       phase = 'scene3-idle';
       isLocked = false;
       updateDots('scene3');
+      scene2SkipStarted = false;
 
       // Notify gallery system
       window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 3 } }));
     }, transitionDuration * 1000);
 
-  }, 800);
+  }, canEnterFromScene2Intro ? 120 : 800);
+};
+
+const skipScene2AndGoScene3 = () => {
+  if (phase !== 'scene2-intro' || scene2SkipStarted) return;
+
+  videos.scene2.pause();
+  scene2IdleStarted = true;
+  progressBar.style.width = '100%';
+  goScene3({ skipScene2Intro: true });
+};
+
+const skipScene2AndGoScene1 = () => {
+  if (phase !== 'scene2-intro' || scene2SkipStarted) return;
+
+  scene2SkipStarted = true;
+  videos.scene2.pause();
+  goScene1({ force: true });
 };
 
 const goBackToScene2 = () => {
@@ -272,12 +308,23 @@ const handleWheel = (event) => {
   event.preventDefault();
   if (isIntroActive) return;
 
+  if (phase === 'scene2-intro' && Math.abs(event.deltaY) > 18) {
+    if (event.deltaY > 0) skipScene2AndGoScene3();
+    else skipScene2AndGoScene1();
+    return;
+  }
+
   const now = Date.now();
   if (now - lastWheelAt < 700) return;
   lastWheelAt = now;
 
   // Scene3 area-based routing
   if (phase === 'scene3-idle') {
+    if (event.deltaY < -18) {
+      goBackToScene2();
+      return;
+    }
+
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -295,10 +342,6 @@ const handleWheel = (event) => {
       return;
     }
 
-    // Outside photo area: allow scene navigation back to scene2
-    if (event.deltaY < -18) {
-      goBackToScene2();
-    }
     return;
   }
 
@@ -321,6 +364,11 @@ const handleTouchEnd = (event) => {
   const endY = event.changedTouches[0].clientY;
   const delta = touchStartY - endY;
   if (Math.abs(delta) < 42) return;
+  if (phase === 'scene2-intro') {
+    if (delta > 0) skipScene2AndGoScene3();
+    else skipScene2AndGoScene1();
+    return;
+  }
   if (delta > 0) goScene2();
   else goScene1();
 };

@@ -12,16 +12,17 @@ const detailDescription = document.getElementById('detailDescription');
 const detailDate = document.getElementById('detailDate');
 const closeButton = document.getElementById('detailClose');
 
-function enterFocusMode(photoId) {
-  console.log('enterFocusMode called with:', photoId);
+if (overlay && overlay.parentElement !== document.body) {
+  document.body.appendChild(overlay);
+}
 
+function enterFocusMode(photoId) {
   if (!window.gallerySystem) {
     console.error('gallerySystem not available');
     return;
   }
 
   const photo = window.gallerySystem.getPhotoById(photoId);
-  console.log('Found photo:', photo);
 
   if (!photo) {
     console.error('Photo not found for id:', photoId);
@@ -40,9 +41,6 @@ function enterFocusMode(photoId) {
   detailTitle.textContent = photo.title;
   detailDescription.textContent = photo.description;
   detailDate.textContent = photo.date;
-
-  console.log('Image src set to:', photo.src);
-  console.log('Overlay element:', overlay);
 
   // Show overlay
   overlay.classList.add('is-active');

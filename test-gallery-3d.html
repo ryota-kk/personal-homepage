@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery 3D Test</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0c10;
+      overflow: hidden;
+    }
+    .test-info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      color: white;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 2000;
+      backdrop-filter: blur(10px);
+    }
+    .test-info div {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-info">
+    <div>Gallery 3D Photo Stream Test</div>
+    <div>Photos: <span id="photoCount">0</span></div>
+    <div>Status: <span id="status">Initializing...</span></div>
+    <div>Paused: <span id="isPaused">false</span></div>
+    <div>Hover on photos to pause</div>
+    <div>Scroll to control movement</div>
+  </div>
+
+  <div class="page-gallery">
+    <div class="gallery-3d-stage">
+      <div class="photo-track" id="photoTrack">
+        <!-- Photos injected by gallery-3d.js -->
+      </div>
+    </div>
+  </div>
+
+  <script src="gallery-3d.js"></script>
+  <script>
+    // Simulate scene:change event to start the loop
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 3 } }));
+      document.getElementById('status').textContent = 'Running';
+    }, 500);
+
+    // Update debug info
+    setInterval(() => {
+      const track = document.getElementById('photoTrack');
+      const photoCount = track ? track.querySelectorAll('.photo-card').length : 0;
+      document.getElementById('photoCount').textContent = photoCount;
+    }, 1000);
+
+    // Route wheel events to gallery system
+    document.addEventListener('wheel', (e) => {
+      window.dispatchEvent(new CustomEvent('gallery:wheel', { detail: { deltaY: e.deltaY } }));
+    });
+
+    // Monitor pause state
+    const originalIsPaused = window.isPaused;
+    setInterval(() => {
+      // Access isPaused from gallery-3d.js scope via debug
+      document.getElementById('isPaused').textContent =
+        document.querySelector('.photo-card.is-hovered') ? 'true' : 'false';
+    }, 100);
+  </script>
+</body>
+</html>
