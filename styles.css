@@ -816,7 +816,7 @@ h3 {
   position: relative;
   width: 320px;
   height: 80vh;
-  overflow: visible;
+  overflow: hidden;
   transform-style: preserve-3d;
 }
 
@@ -828,9 +828,17 @@ h3 {
   /* 右列特定样式（如需要） */
 }
 
-.photo-card {
+.photo-track-strip {
   position: absolute;
+  top: 0;
   left: 0;
+  width: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.photo-card {
+  position: relative;
   width: 300px;
   height: 220px;
   margin-bottom: 30px;
@@ -937,7 +945,7 @@ h3 {
 }
 
 .photo-detail-overlay.is-active {
-  opacity: 1;
+  opacity: 1 !important;
   pointer-events: all;
 }
 
