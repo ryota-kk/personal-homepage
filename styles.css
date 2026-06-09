@@ -955,13 +955,14 @@ h3 {
   gap: 3rem;
   max-width: 90vw;
   max-height: 90vh;
+  margin: auto;
 
-  transform: scale(0.9) translateY(20px);
-  transition: transform 0.8s cubic-bezier(0.7, 0, 0.16, 1);
+  transform: scale(0.95);
+  transition: transform 0.4s cubic-bezier(0.7, 0, 0.16, 1);
 }
 
 .photo-detail-overlay.is-active .detail-content {
-  transform: scale(1) translateY(0);
+  transform: scale(1);
 }
 
 .detail-image {
