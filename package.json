@@ -1,0 +1,12 @@
+{
+  "name": "scene-scroll-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node static-server.mjs",
+    "build": "node scripts/build-static.mjs",
+    "preview": "node static-server.mjs dist",
+    "start": "node static-server.mjs dist"
+  }
+}

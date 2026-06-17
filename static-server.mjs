@@ -3,9 +3,11 @@ import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = fileURLToPath(new URL(".", import.meta.url));
+const projectRoot = fileURLToPath(new URL(".", import.meta.url));
+const serveArg = process.argv[2] || ".";
+const root = resolve(projectRoot, serveArg);
 const rootDir = resolve(root);
-const port = 5173;
+const port = Number(process.env.PORT || (serveArg === "." ? 5173 : 4173));
 
 const types = {
   ".css": "text/css; charset=utf-8",
@@ -42,7 +44,16 @@ createServer((req, res) => {
     res.writeHead(200, {
       "Content-Type": types[extname(finalPath).toLowerCase()] || "application/octet-stream",
     });
-    createReadStream(finalPath).pipe(res);
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    createReadStream(finalPath)
+      .on("error", () => {
+        if (!res.headersSent) res.writeHead(500);
+        res.end("Server error");
+      })
+      .pipe(res);
   } catch {
     res.writeHead(404);
     res.end("Not found");
