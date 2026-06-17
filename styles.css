@@ -661,9 +661,10 @@ h3 {
 
 .project-modal-card {
   position: relative;
-  width: min(70vw, 1120px);
-  max-height: 80vh;
-  overflow-y: auto;
+  width: min(74vw, 1120px);
+  height: min(78vh, 720px);
+  max-height: 78vh;
+  overflow: hidden;
   overflow-x: hidden;
   display: grid;
   grid-template-columns: minmax(280px, .86fr) minmax(360px, 1.14fr);
@@ -724,9 +725,9 @@ h3 {
 }
 
 .project-modal-media {
-  position: sticky;
-  top: 0;
-  min-height: 100%;
+  position: relative;
+  min-height: 0;
+  height: 100%;
   background:
     radial-gradient(circle at 28% 20%, rgba(117,220,255,.18), transparent 26%),
     linear-gradient(160deg, rgba(33,68,126,.34), rgba(12,17,24,.58));
@@ -745,58 +746,69 @@ h3 {
 .project-modal-media video {
   width: 100%;
   height: 100%;
-  min-height: 520px;
+  min-height: 0;
   object-fit: cover;
   display: block;
 }
 
 .project-modal-content {
-  padding: clamp(30px, 4vw, 54px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 3vw, 34px) clamp(26px, 3.2vw, 40px) clamp(22px, 2.6vw, 32px);
 }
 
 .project-modal-kicker {
-  margin: 0 0 14px;
+  margin: 0 0 8px;
   color: rgba(255,255,255,.62);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: .2em;
   text-transform: uppercase;
 }
 
 .project-modal-title {
   max-width: calc(100% - 58px);
-  font-size: clamp(32px, 3.4vw, 48px);
+  font-size: clamp(28px, 2.8vw, 40px);
   font-weight: 600;
-  line-height: 1.04;
-  margin: 0 0 16px;
+  line-height: 1.02;
+  margin: 0 0 9px;
   color: var(--text);
   white-space: nowrap;
 }
 
 .project-modal-summary {
-  margin: 0 0 26px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0 0 14px;
   color: rgba(255,255,255,.76);
-  font-size: clamp(16px, 1.4vw, 20px);
-  line-height: 1.7;
+  font-size: clamp(14px, 1.15vw, 17px);
+  line-height: 1.42;
 }
 
 .project-modal-grid {
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-rows: repeat(2, minmax(118px, 1fr));
+  gap: 10px;
+  min-height: 0;
 }
 
 .project-detail-section {
-  padding: 18px 18px 20px;
+  min-height: 118px;
+  padding: 12px 13px 13px;
   border: 1px solid rgba(255,255,255,.13);
-  border-radius: 20px;
+  border-radius: 16px;
   background: rgba(255,255,255,.055);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
 }
 
 .project-detail-section h4 {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   color: rgba(255,255,255,.84);
-  font-size: 12px;
+  font-size: 10.5px;
   letter-spacing: .16em;
   text-transform: uppercase;
 }
@@ -804,8 +816,8 @@ h3 {
 .project-detail-section p,
 .project-detail-section li {
   color: rgba(255,255,255,.68);
-  font-size: 14px;
-  line-height: 1.62;
+  font-size: 12.5px;
+  line-height: 1.38;
 }
 
 .project-detail-section p,
@@ -813,31 +825,44 @@ h3 {
   margin: 0;
 }
 
+.project-detail-section p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
 .project-detail-section ul {
-  padding-left: 18px;
+  padding-left: 15px;
+}
+
+.project-detail-section li {
+  margin-bottom: 2px;
 }
 
 .project-tech-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 9px;
+  gap: 6px;
 }
 
 .project-tech-list span {
-  padding: 7px 10px;
+  padding: 5px 8px;
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 999px;
   color: rgba(255,255,255,.72);
   background: rgba(255,255,255,.07);
-  font-size: 12px;
+  font-size: 10.5px;
 }
 
 .project-modal-footer {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  margin-top: 24px;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 .project-status {
@@ -858,9 +883,9 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 0 20px;
-  font-size: 15px;
+  min-height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
   font-weight: 600;
   color: rgba(255,255,255,.96);
   background: linear-gradient(135deg, rgba(45,112,78,.64), rgba(13,47,36,.56));
@@ -1389,13 +1414,16 @@ body[data-phase="scene4-idle"] .contact-reveal {
 
   .project-modal-card {
     width: calc(100vw - 28px);
+    height: auto;
     max-height: calc(100dvh - 88px);
+    overflow-y: auto;
     grid-template-columns: 1fr;
     border-radius: 24px;
   }
 
   .project-modal-media {
     position: relative;
+    height: auto;
     min-height: 220px;
   }
 
@@ -1406,6 +1434,7 @@ body[data-phase="scene4-idle"] .contact-reveal {
   }
 
   .project-modal-content {
+    display: block;
     padding: 24px 20px 26px;
   }
 
