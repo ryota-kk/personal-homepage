@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Scene Scroll Portfolio</title>
   <link rel="stylesheet" href="./styles.css?v=bitmap-cover-image" />
 </head>
@@ -44,6 +44,11 @@
         <button class="nav-dot" data-go="scene4" aria-label="联系页"></button>
       </nav>
     </header>
+
+    <div class="mobile-scene-controls" aria-label="Mobile scene navigation">
+      <button class="mobile-scene-btn" type="button" data-mobile-prev aria-label="Previous scene">Prev</button>
+      <button class="mobile-scene-btn" type="button" data-mobile-next aria-label="Next scene">Next</button>
+    </div>
 
     <div id="contentTrack" class="content-track" style="width: 400vw;">
       <section class="page page-home" aria-labelledby="home-title">

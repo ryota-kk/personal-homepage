@@ -7,6 +7,7 @@
   scene3Loop: document.getElementById('scene3LoopVideo'),
 };
 
+const siteShell = document.querySelector('.site-shell');
 const contentTrack = document.getElementById('contentTrack');
 const introOverlay = document.getElementById('introOverlay');
 const introEnterBtn = document.getElementById('introEnterBtn');
@@ -15,7 +16,9 @@ const enterBtn = document.getElementById('enterBtn');
 const progressBar = document.getElementById('progressBar');
 const stateText = document.getElementById('stateText');
 const navDots = [...document.querySelectorAll('.nav-dot')];
-const scene2Cards = document.querySelector('.content-grid');
+const mobilePrevBtn = document.querySelector('[data-mobile-prev]');
+const mobileNextBtn = document.querySelector('[data-mobile-next]');
+const scene2Cards = document.querySelector('.project-cards-grid, .content-grid');
 const feedbackForm = document.getElementById('feedbackForm');
 const feedbackToast = document.getElementById('feedbackToast');
 const feedbackSubmit = feedbackForm?.querySelector('.feedback-submit');
@@ -29,11 +32,24 @@ let scene2Duration = 8.767;
 let scene2IdleStarted = false;
 let lastWheelAt = 0;
 let touchStartY = 0;
+let touchStartX = 0;
+let isTouching = false;
+let lastTouchAt = 0;
 let scene2SkipStarted = false;
 let scene3LoopStarted = false;
 let isScene2Leaving = false;
 let scene2ExitTimer = null;
 const scene2ExitDelay = 320;
+const TOUCH_THRESHOLD = 60;
+const TOUCH_THROTTLE_MS = 680;
+const INTERACTIVE_TOUCH_SELECTOR = 'button, a, input, textarea, select, label, .project-modal-card, .audio-control-panel, .mobile-scene-controls';
+
+const updateAppHeight = () => {
+  const height = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', `${height}px`);
+};
+
+const isMobileViewport = () => window.matchMedia('(max-width: 768px)').matches;
 
 const setRootDuration = () => {
   const ms = Math.max(1200, transitionDuration * 1000);
@@ -84,6 +100,19 @@ const waitForVideoReady = (video) => new Promise(resolve => {
   video.addEventListener('error', done, { once: true });
   video.load();
 });
+
+const runWhenVideoCompletes = (video, fallbackMs, callback) => {
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    video.removeEventListener('ended', finish);
+    window.clearTimeout(timer);
+    callback();
+  };
+  const timer = window.setTimeout(finish, fallbackMs);
+  video.addEventListener('ended', finish, { once: true });
+};
 
 const pauseExcept = (activeKeys) => {
   Object.entries(videos).forEach(([key, video]) => {
@@ -267,8 +296,8 @@ const goScene2 = async () => {
   videos.transition.currentTime = 0;
   safePlay(videos.transition);
 
-  // Start scene2 when the transition video ends.
-  videos.transition.addEventListener('ended', () => {
+  // Start scene2 when the transition video ends; mobile browsers sometimes miss ended.
+  runWhenVideoCompletes(videos.transition, (transitionDuration * 1000) + 700, () => {
     videos.scene2.style.transition = '';
     videos.scene2.style.opacity = '1';
     showOnly(['scene2']);
@@ -277,7 +306,7 @@ const goScene2 = async () => {
     videos.scene2.currentTime = 0;
     setPhase('scene2-intro');
     safePlay(videos.scene2);
-  }, { once: true });
+  });
 };
 
 const goScene1 = ({ force = false } = {}) => {
@@ -476,6 +505,25 @@ const goBackToScene3 = () => {
   }, 920);
 };
 
+const navigateSceneByDirection = (direction) => {
+  if (isIntroActive) return;
+  if (document.body.classList.contains('project-detail-open')) return;
+  if (isScene2Leaving) return;
+
+  if (direction === 'next') {
+    if (phase === 'scene1-idle') goScene2();
+    else if (phase === 'scene2-intro') skipScene2AndGoScene3();
+    else if (phase === 'scene2-idle') startScene2ExitToScene3();
+    else if (phase === 'scene3-idle') goScene4();
+    return;
+  }
+
+  if (phase === 'scene4-idle') goBackToScene3();
+  else if (phase === 'scene3-idle') goBackToScene2();
+  else if (phase === 'scene2-intro') skipScene2AndGoScene1();
+  else if (phase === 'scene2-idle') goScene1();
+};
+
 const handleWheel = (event) => {
   event.preventDefault();
   if (isIntroActive) return;
@@ -539,37 +587,51 @@ const handleWheel = (event) => {
 };
 
 const handleTouchStart = (event) => {
+  if (!isMobileViewport()) return;
   if (isIntroActive) return;
   if (document.body.classList.contains('project-detail-open')) return;
+  if (event.target.closest(INTERACTIVE_TOUCH_SELECTOR)) return;
+
+  isTouching = true;
   touchStartY = event.touches[0].clientY;
+  touchStartX = event.touches[0].clientX;
+};
+
+const handleTouchMove = (event) => {
+  if (!isMobileViewport()) return;
+  if (!isTouching) return;
+  if (event.touches.length !== 1) return;
+
+  const currentY = event.touches[0].clientY;
+  const currentX = event.touches[0].clientX;
+  const deltaY = currentY - touchStartY;
+  const deltaX = currentX - touchStartX;
+
+  if (Math.abs(deltaY) >= Math.abs(deltaX)) {
+    event.preventDefault();
+  }
 };
 
 const handleTouchEnd = (event) => {
+  if (!isMobileViewport()) return;
+  if (!isTouching) return;
+  isTouching = false;
   if (isIntroActive) return;
   if (document.body.classList.contains('project-detail-open')) return;
   if (isScene2Leaving) return;
+
   const endY = event.changedTouches[0].clientY;
-  const delta = touchStartY - endY;
-  if (Math.abs(delta) < 42) return;
-  if (phase === 'scene4-idle') {
-    if (delta < 0) goBackToScene3();
-    return;
-  }
-  if (phase === 'scene3-idle') {
-    if (delta > 0) goScene4();
-    else goBackToScene2();
-    return;
-  }
-  if (phase === 'scene2-intro') {
-    if (delta > 0) skipScene2AndGoScene3();
-    else skipScene2AndGoScene1();
-    return;
-  }
-  if (delta > 0) {
-    if (phase === 'scene2-idle') startScene2ExitToScene3();
-    else goScene2();
-  }
-  else goScene1();
+  const endX = event.changedTouches[0].clientX;
+  const deltaY = touchStartY - endY;
+  const deltaX = touchStartX - endX;
+
+  if (Math.abs(deltaY) < TOUCH_THRESHOLD || Math.abs(deltaY) < Math.abs(deltaX)) return;
+
+  const now = Date.now();
+  if (now - lastTouchAt < TOUCH_THROTTLE_MS) return;
+  lastTouchAt = now;
+
+  navigateSceneByDirection(deltaY > 0 ? 'next' : 'prev');
 };
 
 const warmUpAutoplay = () => {
@@ -593,8 +655,17 @@ const warmUpAutoplay = () => {
 introEnterBtn.addEventListener('click', handleEnter);
 enterBtn.addEventListener('click', goScene2);
 window.addEventListener('wheel', handleWheel, { passive: false });
-window.addEventListener('touchstart', handleTouchStart, { passive: true });
-window.addEventListener('touchend', handleTouchEnd, { passive: true });
+siteShell?.addEventListener('touchstart', handleTouchStart, { passive: true });
+siteShell?.addEventListener('touchmove', handleTouchMove, { passive: false });
+siteShell?.addEventListener('touchend', handleTouchEnd, { passive: true });
+siteShell?.addEventListener('touchcancel', () => { isTouching = false; }, { passive: true });
+window.addEventListener('resize', updateAppHeight);
+window.visualViewport?.addEventListener('resize', updateAppHeight);
+window.visualViewport?.addEventListener('scroll', updateAppHeight);
+updateAppHeight();
+
+mobilePrevBtn?.addEventListener('click', () => navigateSceneByDirection('prev'));
+mobileNextBtn?.addEventListener('click', () => navigateSceneByDirection('next'));
 
 document.querySelector('[data-go="scene1"]').addEventListener('click', goScene1);
 document.querySelector('[data-go="scene2"]').addEventListener('click', goScene2);

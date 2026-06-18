@@ -7,6 +7,7 @@
   --stroke: rgba(255,255,255,.16);
   --transition-ms: 8800ms;
   --ease-cinema: cubic-bezier(.7, 0, .16, 1);
+  --app-height: 100vh;
 }
 
 * { box-sizing: border-box; }
@@ -270,6 +271,10 @@ button {
 .nav-dot.is-active {
   width: 28px;
   background: rgba(255,255,255,.92);
+}
+
+.mobile-scene-controls {
+  display: none;
 }
 
 .content-track {
@@ -1177,17 +1182,96 @@ body[data-phase="scene4-idle"] .contact-reveal {
   html,
   body,
   .site-shell {
+    width: 100%;
+    height: var(--app-height);
     overflow: hidden;
     overscroll-behavior: none;
   }
 
+  html {
+    position: fixed;
+    inset: 0;
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
+    touch-action: none;
+  }
+
+  .site-shell {
+    position: fixed;
+    inset: 0;
+    touch-action: none;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  label,
+  .project-card,
+  .nav-dot,
+  .audio-control-panel,
+  .mobile-scene-controls,
+  .project-modal-card {
+    touch-action: manipulation;
+  }
+
+  .video-stage,
+  .bg-video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: var(--app-height);
+  }
+
+  .bg-video {
+    object-fit: cover;
+    object-position: center center;
+  }
+
   .content-track {
-    height: 100dvh;
+    height: var(--app-height);
+    overscroll-behavior: none;
+    touch-action: none;
   }
 
   .page {
-    height: 100dvh;
+    height: var(--app-height);
     overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .mobile-scene-controls {
+    position: fixed;
+    right: 14px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 999px;
+    background: rgba(6,12,14,.34);
+    backdrop-filter: blur(18px) saturate(1.12);
+    box-shadow: 0 14px 42px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+
+  .mobile-scene-btn {
+    min-width: 48px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 999px;
+    color: rgba(255,255,255,.86);
+    background: rgba(255,255,255,.08);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .08em;
+    text-transform: uppercase;
   }
 
   .page-contact {
