@@ -44,7 +44,6 @@ class AudioSpectrumEffect {
     this.createCanvas();
     this.setupAudioContext();
     this.setupEventListeners();
-    this.startAnimation();
   }
 
   createCanvas() {
@@ -148,7 +147,6 @@ class AudioSpectrumEffect {
 
       this.audioSource.connect(this.analyser);
       this.analyser.connect(this.audioContext.destination);
-      this.isPlaying = true;
     } catch (error) {
       console.error('Failed to connect audio source:', error);
     }
@@ -182,6 +180,7 @@ class AudioSpectrumEffect {
 
       await this.audioElement.play();
       this.isPlaying = true;
+      this.startAnimation();
     } catch (error) {
       console.error('Audio playback failed:', error);
     }
@@ -191,6 +190,11 @@ class AudioSpectrumEffect {
     if (this.audioElement) {
       this.audioElement.pause();
       this.isPlaying = false;
+      if (this.animationId !== null) {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+      }
+      this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
     }
   }
 
@@ -303,7 +307,12 @@ class AudioSpectrumEffect {
   }
 
   startAnimation() {
+    if (this.animationId !== null) return;
     const animate = () => {
+      if (!this.isPlaying) {
+        this.animationId = null;
+        return;
+      }
       this.drawSpectrum();
       this.animationId = requestAnimationFrame(animate);
     };

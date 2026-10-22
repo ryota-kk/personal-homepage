@@ -45,9 +45,11 @@ function createPhotoCard(photo) {
   card.dataset.photoId = photo.id;
 
   const img = document.createElement('img');
-  img.src = photo.src;
+  img.src = `assets/gallery/thumbs/photo${photo.id}.jpg`;
   img.alt = photo.title;
   img.className = 'photo-image';
+  img.loading = 'lazy';
+  img.decoding = 'async';
 
   const shineOverlay = document.createElement('div');
   shineOverlay.className = 'shine-overlay';

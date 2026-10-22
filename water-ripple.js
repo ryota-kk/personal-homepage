@@ -34,7 +34,6 @@ class WaterRippleEffect {
     this.container.addEventListener('pointermove', this.boundPointerMove, { passive: true });
     this.container.addEventListener('touchmove', this.boundTouchMove, { passive: true });
 
-    this.animate();
   }
 
   isMobile() {
@@ -74,6 +73,9 @@ class WaterRippleEffect {
     const rect = this.container.getBoundingClientRect();
     this.ripples.push(this.createRipple(clientX - rect.left, clientY - rect.top));
     this.lastRippleAt = now;
+    if (this.animationId === null) {
+      this.animationId = requestAnimationFrame(this.boundAnimate);
+    }
   }
 
   handlePointerMove(event) {
@@ -125,8 +127,8 @@ class WaterRippleEffect {
   }
 
   animate() {
-    const rect = this.container.getBoundingClientRect();
-    this.ctx.clearRect(0, 0, rect.width, rect.height);
+    this.animationId = null;
+    this.ctx.clearRect(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
 
     this.ripples = this.ripples.filter(ripple => {
       ripple.radius += ripple.speed;
@@ -141,7 +143,9 @@ class WaterRippleEffect {
       return true;
     });
 
-    this.animationId = requestAnimationFrame(this.boundAnimate);
+    if (this.ripples.length > 0) {
+      this.animationId = requestAnimationFrame(this.boundAnimate);
+    }
   }
 
   destroy() {

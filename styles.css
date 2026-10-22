@@ -5,7 +5,7 @@
   --panel: rgba(13,16,22,.36);
   --panel-strong: rgba(10,12,18,.54);
   --stroke: rgba(255,255,255,.16);
-  --transition-ms: 8800ms;
+  --transition-ms: 2972ms;
   --ease-cinema: cubic-bezier(.7, 0, .16, 1);
   --app-height: 100vh;
 }
@@ -298,6 +298,7 @@ body[data-phase="scene2-idle"] .content-track {
   transform: translate3d(-100vw,0,0);
 }
 
+body[data-phase="scene3"] .content-track,
 body[data-phase="scene3-idle"] .content-track,
 body[data-phase="transition-2-3"] .content-track,
 body[data-phase="transition-4-3"] .content-track {

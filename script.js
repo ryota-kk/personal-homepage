@@ -10,6 +10,7 @@
 const siteShell = document.querySelector('.site-shell');
 const contentTrack = document.getElementById('contentTrack');
 const introOverlay = document.getElementById('introOverlay');
+const introVideo = introOverlay.querySelector('.intro-bg-video');
 const introEnterBtn = document.getElementById('introEnterBtn');
 const introAudio = document.getElementById('introAudio');
 const enterBtn = document.getElementById('enterBtn');
@@ -27,8 +28,8 @@ const FORMSPREE_ENDPOINT = "https://formspree.io/f/xeewdkap";
 let isIntroActive = true;
 let phase = 'scene1-idle';
 let isLocked = false;
-let transitionDuration = 8.833;
-let scene2Duration = 8.767;
+let transitionDuration = 2.972;
+let scene2Duration = 18.483;
 let scene2IdleStarted = false;
 let lastWheelAt = 0;
 let touchStartY = 0;
@@ -40,6 +41,7 @@ let scene3LoopStarted = false;
 let isScene2Leaving = false;
 let scene2ExitTimer = null;
 const scene2ExitDelay = 320;
+const sceneTrackDuration = 900;
 const TOUCH_THRESHOLD = 60;
 const TOUCH_THROTTLE_MS = 680;
 const INTERACTIVE_TOUCH_SELECTOR = 'button, a, input, textarea, select, label, .project-modal-card, .audio-control-panel, .mobile-scene-controls';
@@ -56,15 +58,16 @@ const setRootDuration = () => {
   document.documentElement.style.setProperty('--transition-ms', `${ms}ms`);
 };
 
-const readMetadata = async () => {
-  await Promise.all(Object.values(videos).map(video => new Promise(resolve => {
-    if (Number.isFinite(video.duration) && video.duration > 0) return resolve();
-    video.addEventListener('loadedmetadata', resolve, { once: true });
-  })));
+const readMetadata = () => {
+  const syncDuration = () => {
+    if (Number.isFinite(videos.transition.duration)) transitionDuration = videos.transition.duration;
+    if (Number.isFinite(videos.scene2.duration)) scene2Duration = videos.scene2.duration;
+    setRootDuration();
+  };
 
-  if (Number.isFinite(videos.transition.duration)) transitionDuration = videos.transition.duration;
-  if (Number.isFinite(videos.scene2.duration)) scene2Duration = videos.scene2.duration;
-  setRootDuration();
+  videos.transition.addEventListener('loadedmetadata', syncDuration);
+  videos.scene2.addEventListener('loadedmetadata', syncDuration);
+  syncDuration();
 };
 
 const showOnly = (visibleKeys) => {
@@ -201,14 +204,17 @@ const handleEnter = async () => {
   }
 
   isIntroActive = false;
+  safePlay(videos.scene1);
   introOverlay.classList.add('is-leaving');
   introOverlay.setAttribute('aria-hidden', 'true');
 
   introOverlay.addEventListener('transitionend', () => {
     introOverlay.hidden = true;
+    introVideo.pause();
   }, { once: true });
   window.setTimeout(() => {
     introOverlay.hidden = true;
+    introVideo.pause();
   }, 920);
 };
 
@@ -286,6 +292,7 @@ const goScene2 = async () => {
   scene2IdleStarted = false;
   scene2SkipStarted = false;
   resetProgress();
+  videos.scene2.load();
 
   videos.scene1.style.opacity = '';
   contentTrack.classList.add('is-moving');
@@ -304,6 +311,7 @@ const goScene2 = async () => {
     pauseExcept(['scene2']);
 
     videos.scene2.currentTime = 0;
+    videos.scene2Idle.load();
     setPhase('scene2-intro');
     safePlay(videos.scene2);
   });
@@ -380,19 +388,18 @@ const goScene3 = ({ skipScene2Intro = false, fromScene2Exit = false } = {}) => {
     await playScene3Intro({ holdVisibleKeys: [outgoingKey] });
 
     // Scroll to scene3
-    contentTrack.style.transition = `transform ${transitionDuration * 1000}ms var(--ease-cinema)`;
+    contentTrack.style.transition = `transform ${sceneTrackDuration}ms var(--ease-cinema)`;
     contentTrack.style.transform = 'translateX(-200vw)';
 
     setTimeout(() => {
-      phase = 'scene3-idle';
+      setPhase('scene3-idle');
       isLocked = false;
-      updateDots('scene3');
       scene2SkipStarted = false;
       resetScene2Exit({ clearTimer: false });
 
       // Notify gallery system
       window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 3 } }));
-    }, transitionDuration * 1000);
+    }, sceneTrackDuration);
 
   }, fromScene2Exit ? 0 : (canEnterFromScene2Intro ? 120 : 800));
 };
@@ -459,17 +466,16 @@ const goBackToScene2 = () => {
     });
 
     // Scroll to scene2
-    contentTrack.style.transition = `transform ${transitionDuration * 1000}ms var(--ease-cinema)`;
+    contentTrack.style.transition = `transform ${sceneTrackDuration}ms var(--ease-cinema)`;
     contentTrack.style.transform = 'translateX(-100vw)';
 
     setTimeout(() => {
-      phase = 'scene2-idle';
+      setPhase('scene2-idle');
       isLocked = false;
-      updateDots('scene2');
 
       // Notify gallery system
       window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 2 } }));
-    }, transitionDuration * 1000);
+    }, sceneTrackDuration);
 
   }, 800);
 };
@@ -484,6 +490,8 @@ const goScene4 = () => {
 
   setTimeout(() => {
     setPhase('scene4-idle');
+    videos.scene3.pause();
+    videos.scene3Loop.pause();
     progressBar.style.width = '100%';
     isLocked = false;
     window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 4 } }));
@@ -494,6 +502,7 @@ const goBackToScene3 = () => {
   if (isLocked || phase !== 'scene4-idle') return;
   isLocked = true;
   setPhase('transition-4-3');
+  safePlay(scene3LoopStarted ? videos.scene3Loop : videos.scene3);
   contentTrack.classList.add('is-moving');
   contentTrack.style.transition = 'transform 900ms var(--ease-cinema)';
   contentTrack.style.transform = 'translateX(-200vw)';
@@ -639,7 +648,7 @@ const warmUpAutoplay = () => {
     video.muted = true;
     video.playsInline = true;
   });
-  safePlay(videos.scene1);
+  videos.scene1.pause();
 
   // Initialize scene3 video
   if (videos.scene3) {
@@ -714,10 +723,9 @@ feedbackForm?.addEventListener('submit', async (event) => {
   }
 }, { capture: true });
 
-readMetadata().then(() => {
-  document.body.dataset.phase = 'scene1';
-  setPhase('scene1-idle');
-  showOnly(['scene1']);
-  warmUpAutoplay();
-  frameLoop();
-});
+readMetadata();
+document.body.dataset.phase = 'scene1';
+setPhase('scene1-idle');
+showOnly(['scene1']);
+warmUpAutoplay();
+frameLoop();

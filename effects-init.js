@@ -20,14 +20,7 @@
     }
 
     // ===== 1. 鍒濆鍖栨按娉㈢汗鏁堟灉 =====
-    let waterRipple = null;
-    if (typeof WaterRippleEffect !== 'undefined') {
-      try {
-        waterRipple = new WaterRippleEffect(videoStage);
-      } catch (error) {
-        console.error('姘存尝绾规晥鏋滃垵濮嬪寲澶辫触:', error);
-      }
-    }
+    const waterRipple = window.sceneScrollWaterRipple || null;
 
     // ===== 2. 鍒濆鍖栭煶棰戦璋辨晥鏋?=====
     let audioSpectrum = null;
