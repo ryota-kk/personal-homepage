@@ -36,6 +36,8 @@ let touchStartY = 0;
 let touchStartX = 0;
 let isTouching = false;
 let lastTouchAt = 0;
+let projectGridTouchY = 0;
+let projectGridScrollTop = 0;
 let scene2SkipStarted = false;
 let scene3LoopStarted = false;
 let isScene2Leaving = false;
@@ -600,6 +602,7 @@ const handleTouchStart = (event) => {
   if (isIntroActive) return;
   if (document.body.classList.contains('project-detail-open')) return;
   if (event.target.closest(INTERACTIVE_TOUCH_SELECTOR)) return;
+  if (event.target.closest('.project-cards-grid')?.scrollHeight > scene2Cards.clientHeight + 2) return;
 
   isTouching = true;
   touchStartY = event.touches[0].clientY;
@@ -668,6 +671,18 @@ siteShell?.addEventListener('touchstart', handleTouchStart, { passive: true });
 siteShell?.addEventListener('touchmove', handleTouchMove, { passive: false });
 siteShell?.addEventListener('touchend', handleTouchEnd, { passive: true });
 siteShell?.addEventListener('touchcancel', () => { isTouching = false; }, { passive: true });
+scene2Cards?.addEventListener('touchstart', (event) => {
+  if (!isMobileViewport() || event.touches.length !== 1) return;
+  projectGridTouchY = event.touches[0].clientY;
+  projectGridScrollTop = scene2Cards.scrollTop;
+}, { passive: true });
+scene2Cards?.addEventListener('touchmove', (event) => {
+  if (!isMobileViewport() || event.touches.length !== 1) return;
+  if (scene2Cards.scrollHeight <= scene2Cards.clientHeight + 2) return;
+  event.preventDefault();
+  event.stopPropagation();
+  scene2Cards.scrollTop = projectGridScrollTop + projectGridTouchY - event.touches[0].clientY;
+}, { passive: false });
 window.addEventListener('resize', updateAppHeight);
 window.visualViewport?.addEventListener('resize', updateAppHeight);
 window.visualViewport?.addEventListener('scroll', updateAppHeight);

@@ -83,37 +83,7 @@
             <p class="section-subtitle">探索创意与技术的交汇点</p>
           </div>
 
-          <!-- 右侧项目卡片网格 (右2/3) -->
-          <div class="project-cards-grid">
-            <article class="project-card" data-project-id="1">
-              <img class="project-card-image" src="assets/projects/project1.svg" alt="项目 1">
-              <div class="project-card-info">
-                <h3 class="project-card-title">项目 1</h3>
-                <p class="project-card-description">创新的交互体验设计</p>
-              </div>
-            </article>
-            <article class="project-card" data-project-id="2">
-              <img class="project-card-image" src="assets/projects/project2.svg" alt="项目 2">
-              <div class="project-card-info">
-                <h3 class="project-card-title">项目 2</h3>
-                <p class="project-card-description">数据可视化解决方案</p>
-              </div>
-            </article>
-            <article class="project-card" data-project-id="3">
-              <img class="project-card-image" src="assets/projects/project3.svg" alt="项目 3">
-              <div class="project-card-info">
-                <h3 class="project-card-title">项目 3</h3>
-                <p class="project-card-description">智能图像处理工具</p>
-              </div>
-            </article>
-            <article class="project-card" data-project-id="4">
-              <img class="project-card-image" src="assets/projects/project4.svg" alt="项目 4">
-              <div class="project-card-info">
-                <h3 class="project-card-title">项目 4</h3>
-                <p class="project-card-description">实时协作平台</p>
-              </div>
-            </article>
-          </div>
+          <div class="project-cards-grid" aria-label="项目作品"></div>
         </div>
 
         <!-- Project detail overlay -->
@@ -157,6 +127,20 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        <div class="project-modal-overlay" id="projectCollectionModal" style="display: none;" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="projectCollectionTitle">
+          <div class="project-modal-backdrop" data-collection-close></div>
+          <div class="project-collection-card" tabindex="-1">
+            <button class="project-modal-close" type="button" data-collection-close aria-label="关闭其他项目">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <p class="project-modal-kicker">Selected work</p>
+            <h3 id="projectCollectionTitle">其他项目</h3>
+            <div class="project-collection-list" id="projectCollectionList"></div>
+            <a class="project-collection-site-link" href="https://svg.ryota.top/" target="_blank" rel="noopener noreferrer">
+              查看完整项目展示 <span aria-hidden="true">↗</span>
+            </a>
           </div>
         </div>
       </section>
