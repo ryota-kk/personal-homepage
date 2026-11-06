@@ -131,9 +131,10 @@ class AudioController {
     if (!this.spectrumEffect) return;
 
     try {
-      await this.spectrumEffect.play();
-      this.isPlaying = true;
+      const started = await this.spectrumEffect.play();
+      this.isPlaying = started;
       this.updateButtonState();
+      return started;
     } catch (error) {
       console.error('Audio playback failed:', error);
     }

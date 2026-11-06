@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Scene Scroll Portfolio</title>
-  <link rel="stylesheet" href="./styles.css?v=bitmap-cover-image" />
+  <link rel="preload" as="image" href="./assets/posters/scene1.jpg" fetchpriority="high" />
+  <link rel="stylesheet" href="./styles.css?v=media-reliability-20261106" />
 </head>
 <body>
   <div id="introOverlay" class="intro-overlay" aria-label="进入网站">
-    <video class="intro-bg-video" src="./assets/scene11.mp4" muted playsinline autoplay loop preload="auto"></video>
+    <div class="intro-bg-video" aria-hidden="true"></div>
     <div class="intro-atmosphere" aria-hidden="true"></div>
     <button id="introEnterBtn" class="intro-enter-btn" type="button" aria-label="进入网站">
       <span class="intro-enter-cn">进入网站</span>
@@ -18,16 +19,13 @@
   </div>
   <main class="site-shell" aria-label="场景滚动式个人网站">
     <div class="video-stage" aria-hidden="true">
-      <video id="scene1Video" class="bg-video is-visible" src="./assets/scene11.mp4" muted playsinline loop preload="auto"></video>
-      <video id="transitionVideo" class="bg-video" src="./assets/transition_1_2.mp4?v=video-20260605-2" muted playsinline preload="auto"></video>
-      <video id="scene2Video" class="bg-video" src="./assets/scene2.mp4?v=video-20260605-2" muted playsinline preload="metadata"></video>
-      <video id="scene2IdleVideo" class="bg-video" src="./assets/scene2_idle_loop.mp4?v=video-20260605-2" muted playsinline loop preload="none"></video>
-      <video id="scene3Video" class="bg-video" muted playsinline preload="none">
-        <source src="assets/scene3.mp4" type="video/mp4">
-      </video>
-      <video id="scene3LoopVideo" class="bg-video" muted playsinline loop preload="none">
-        <source src="public/videos/scene3-loop-after.mp4" type="video/mp4">
-      </video>
+      <div id="sceneFallback" class="scene-fallback"></div>
+      <video id="scene1Video" class="bg-video is-visible" data-src="./assets/media/scene1-desktop.mp4" data-mobile-src="./assets/media/scene1-mobile.mp4" poster="./assets/posters/scene1.jpg" muted playsinline loop preload="none"></video>
+      <video id="transitionVideo" class="bg-video" data-src="./assets/media/transition-desktop.mp4" data-mobile-src="./assets/media/transition-mobile.mp4" poster="./assets/posters/transition.jpg" muted playsinline preload="none"></video>
+      <video id="scene2Video" class="bg-video" data-src="./assets/media/scene2-desktop.mp4" data-mobile-src="./assets/media/scene2-mobile.mp4" poster="./assets/posters/scene2.jpg" muted playsinline preload="none"></video>
+      <video id="scene2IdleVideo" class="bg-video" data-src="./assets/media/scene2-idle-desktop.mp4" data-mobile-src="./assets/media/scene2-idle-mobile.mp4" poster="./assets/posters/scene2-idle.jpg" muted playsinline loop preload="none"></video>
+      <video id="scene3Video" class="bg-video" data-src="./assets/media/scene3-desktop.mp4" data-mobile-src="./assets/media/scene3-mobile.mp4" poster="./assets/posters/scene3.jpg" muted playsinline preload="none"></video>
+      <video id="scene3LoopVideo" class="bg-video" data-src="./assets/media/scene3-loop-desktop.mp4" data-mobile-src="./assets/media/scene3-loop-mobile.mp4" poster="./assets/posters/scene3-loop.jpg" muted playsinline loop preload="none"></video>
       <div class="cinema-vignette"></div>
       <div class="grain"></div>
     </div>
@@ -220,7 +218,7 @@
     </div>
   </main>
 
-  <script src="./script.js?v=bitmap-cover-image"></script>
+  <script src="./script.js?v=media-reliability-20261106"></script>
   <script src="./project-cards.js?v=bitmap-cover-image"></script>
   <script src="./gallery-3d.js?v=track-loop"></script>
   <script src="./gallery-carousel.js?v=carousel-preview"></script>

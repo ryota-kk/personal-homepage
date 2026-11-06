@@ -10,7 +10,7 @@
 const siteShell = document.querySelector('.site-shell');
 const contentTrack = document.getElementById('contentTrack');
 const introOverlay = document.getElementById('introOverlay');
-const introVideo = introOverlay.querySelector('.intro-bg-video');
+const sceneFallback = document.getElementById('sceneFallback');
 const introEnterBtn = document.getElementById('introEnterBtn');
 const introAudio = document.getElementById('introAudio');
 const enterBtn = document.getElementById('enterBtn');
@@ -42,6 +42,13 @@ let scene2SkipStarted = false;
 let scene3LoopStarted = false;
 let isScene2Leaving = false;
 let scene2ExitTimer = null;
+let sceneRevision = 0;
+let backgroundRevision = 0;
+let desiredBackground = 'scene1';
+let backgroundHideTimer = null;
+let cancelVideoCompletion = () => {};
+const pendingPlays = new Map();
+const VIDEO_START_TIMEOUT = 4000;
 const scene2ExitDelay = 320;
 const sceneTrackDuration = 900;
 const TOUCH_THRESHOLD = 60;
@@ -80,31 +87,90 @@ const showOnly = (visibleKeys) => {
   });
 };
 
+const ensureVideoSource = (video) => {
+  if (video.getAttribute('src') || !video.dataset.src) return;
+  video.src = isMobileViewport() && video.dataset.mobileSrc ? video.dataset.mobileSrc : video.dataset.src;
+};
+
 const safePlay = (video) => {
-  const promise = video.play();
-  if (promise && typeof promise.catch === 'function') {
-    promise.catch(() => {});
+  pendingPlays.get(video)?.();
+  ensureVideoSource(video);
+  video.muted = true;
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (started) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.removeEventListener('playing', onPlaying);
+      video.removeEventListener('error', onError);
+      pendingPlays.delete(video);
+      resolve(started);
+    };
+    const onPlaying = () => finish(video.readyState >= 2);
+    const onError = () => finish(false);
+    const timer = window.setTimeout(() => finish(false), VIDEO_START_TIMEOUT);
+    pendingPlays.set(video, () => finish(false));
+    video.addEventListener('playing', onPlaying);
+    video.addEventListener('error', onError);
+    try {
+      Promise.resolve(video.play()).then(onPlaying, onError);
+    } catch {
+      finish(false);
+    }
+  });
+};
+
+const showPoster = (key) => {
+  if (sceneFallback && videos[key]?.poster) {
+    sceneFallback.style.backgroundImage = `url("${videos[key].poster}")`;
+    sceneFallback.dataset.scene = key;
   }
 };
 
-const waitForVideoReady = (video) => new Promise(resolve => {
-  if (video.readyState >= 2) {
-    resolve();
-    return;
+const cancelBackgroundPlayback = () => {
+  backgroundRevision += 1;
+  clearTimeout(backgroundHideTimer);
+  [...pendingPlays.values()].forEach(cancel => cancel());
+};
+
+const beginSceneChange = () => {
+  cancelVideoCompletion();
+  cancelVideoCompletion = () => {};
+  cancelBackgroundPlayback();
+  return ++sceneRevision;
+};
+
+const activateBackground = async (key, { restart = false } = {}) => {
+  cancelBackgroundPlayback();
+  const revision = backgroundRevision;
+  desiredBackground = key;
+  const video = videos[key];
+  const previous = Object.keys(videos).filter(id => videos[id].classList.contains('is-visible'));
+  showPoster(key);
+  if (document.hidden) return false;
+  if (restart && video.readyState >= 1) video.currentTime = 0;
+  const started = await safePlay(video);
+  if (revision !== backgroundRevision) {
+    if (desiredBackground !== key) video.pause();
+    return false;
   }
-
-  const done = () => {
-    video.removeEventListener('loadeddata', done);
-    video.removeEventListener('canplay', done);
-    video.removeEventListener('error', done);
-    resolve();
-  };
-
-  video.addEventListener('loadeddata', done, { once: true });
-  video.addEventListener('canplay', done, { once: true });
-  video.addEventListener('error', done, { once: true });
-  video.load();
-});
+  if (!started) {
+    video.pause();
+    showOnly([]);
+    pauseExcept([]);
+    return false;
+  }
+  video.style.opacity = '';
+  video.style.transition = '';
+  showOnly([...previous, key]);
+  backgroundHideTimer = window.setTimeout(() => {
+    if (revision !== backgroundRevision) return;
+    showOnly([key]);
+    pauseExcept([key]);
+  }, 700);
+  return true;
+};
 
 const runWhenVideoCompletes = (video, fallbackMs, callback) => {
   let done = false;
@@ -117,6 +183,11 @@ const runWhenVideoCompletes = (video, fallbackMs, callback) => {
   };
   const timer = window.setTimeout(finish, fallbackMs);
   video.addEventListener('ended', finish, { once: true });
+  return () => {
+    done = true;
+    clearTimeout(timer);
+    video.removeEventListener('ended', finish);
+  };
 };
 
 const pauseExcept = (activeKeys) => {
@@ -136,87 +207,42 @@ const resetScene2Exit = ({ clearTimer = true } = {}) => {
 
 const resetScene3Videos = () => {
   scene3LoopStarted = false;
-  videos.scene3.onended = null;
-  videos.scene3.pause();
-  videos.scene3Loop.pause();
-  videos.scene3.currentTime = 0;
-  videos.scene3Loop.currentTime = 0;
-  videos.scene3.style.transition = '';
-  videos.scene3Loop.style.transition = '';
-  videos.scene3.style.opacity = '0';
-  videos.scene3Loop.style.opacity = '0';
-  videos.scene3Loop.classList.remove('is-visible');
 };
 
-const playScene3Loop = () => {
+const playScene3Loop = async (revision = sceneRevision) => {
+  if (revision !== sceneRevision || !phase.includes('3')) return;
   if (scene3LoopStarted) return;
-
   scene3LoopStarted = true;
-  videos.scene3Loop.currentTime = 0;
-  videos.scene3Loop.style.transition = 'opacity 420ms ease';
-  videos.scene3.style.transition = 'opacity 420ms ease';
-  videos.scene3Loop.classList.add('is-visible');
-  safePlay(videos.scene3Loop);
-
-  requestAnimationFrame(() => {
-    videos.scene3Loop.style.opacity = '1';
-    videos.scene3.style.opacity = '0';
-  });
-
-  window.setTimeout(() => {
-    if (scene3LoopStarted) videos.scene3.pause();
-  }, 460);
+  await activateBackground('scene3Loop', { restart: true });
 };
 
-const playScene3Intro = async ({ holdVisibleKeys = [] } = {}) => {
+const playScene3Intro = async (revision = sceneRevision) => {
   resetScene3Videos();
-  videos.scene3.currentTime = 0;
-  videos.scene3Loop.load();
-  await waitForVideoReady(videos.scene3);
-
-  showOnly([...holdVisibleKeys, 'scene3']);
-  videos.scene3.onended = playScene3Loop;
-  safePlay(videos.scene3);
-
-  requestAnimationFrame(() => {
-    videos.scene3.style.transition = 'opacity 0.8s ease';
-    videos.scene3.style.opacity = '1';
-  });
-
-  if (holdVisibleKeys.length > 0) {
-    window.setTimeout(() => {
-      showOnly(['scene3']);
-      holdVisibleKeys.forEach(key => {
-        videos[key].pause();
-      });
-    }, 520);
+  const started = await activateBackground('scene3', { restart: true });
+  if (revision !== sceneRevision) return;
+  if (!started) {
+    void playScene3Loop(revision);
+    return;
   }
+  const duration = Number.isFinite(videos.scene3.duration) ? videos.scene3.duration : 11;
+  cancelVideoCompletion = runWhenVideoCompletes(videos.scene3, duration * 1000 + 1500, () => {
+    if (revision === sceneRevision) void playScene3Loop(revision);
+  });
 };
 
-const handleEnter = async () => {
+const handleEnter = () => {
   if (!isIntroActive) return;
-
-  // 馃幍 瑙﹀彂闊抽鎾斁
-  if (window.audioControllerInstance) {
-    try {
-      await window.audioControllerInstance.play();
-    } catch (error) {
-      console.warn('闊抽鑷姩鎾斁澶辫触锛堟祻瑙堝櫒绛栫暐锛?', error);
-    }
-  }
-
   isIntroActive = false;
-  safePlay(videos.scene1);
+  void activateBackground('scene1');
+  window.audioControllerInstance?.play().catch(error => console.warn('Audio unavailable:', error));
   introOverlay.classList.add('is-leaving');
   introOverlay.setAttribute('aria-hidden', 'true');
 
   introOverlay.addEventListener('transitionend', () => {
     introOverlay.hidden = true;
-    introVideo.pause();
   }, { once: true });
   window.setTimeout(() => {
     introOverlay.hidden = true;
-    introVideo.pause();
   }, 920);
 };
 
@@ -261,6 +287,18 @@ const resetProgress = () => {
   progressBar.style.width = '0%';
 };
 
+const finishScene2Intro = (revision = sceneRevision) => {
+  if (revision !== sceneRevision || phase !== 'scene2-intro' || scene2IdleStarted) return;
+  cancelVideoCompletion();
+  scene2IdleStarted = true;
+  setPhase('scene2-idle');
+  contentTrack.classList.remove('is-moving');
+  progressBar.style.width = '100%';
+  isLocked = false;
+  void activateBackground('scene2Idle', { restart: true });
+  window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 2 } }));
+};
+
 const frameLoop = () => {
   if (phase === 'transition') {
     const pct = Math.min(100, (videos.transition.currentTime / transitionDuration) * 100);
@@ -274,53 +312,43 @@ const frameLoop = () => {
 
     // Switch to the last-second loop near the end of scene2.
     if (!scene2IdleStarted && videos.scene2.currentTime >= idleStart) {
-      scene2IdleStarted = true;
-      videos.scene2Idle.currentTime = 0;
-      safePlay(videos.scene2Idle);
-      showOnly(['scene2Idle']);
-      setPhase('scene2-idle');
-      pauseExcept(['scene2Idle']);
-      progressBar.style.width = '100%';
-      isLocked = false;
+      finishScene2Intro();
     }
   }
-
-  requestAnimationFrame(frameLoop);
 };
 
 const goScene2 = async () => {
   if (isLocked || phase !== 'scene1-idle') return;
+  const revision = beginSceneChange();
   isLocked = true;
   scene2IdleStarted = false;
   scene2SkipStarted = false;
   resetProgress();
-  videos.scene2.load();
-
-  videos.scene1.style.opacity = '';
   contentTrack.classList.add('is-moving');
   setPhase('transition');
-  showOnly(['transition']);
-  pauseExcept(['transition']);
-
-  videos.transition.currentTime = 0;
-  safePlay(videos.transition);
-
-  // Start scene2 when the transition video ends; mobile browsers sometimes miss ended.
-  runWhenVideoCompletes(videos.transition, (transitionDuration * 1000) + 700, () => {
-    videos.scene2.style.transition = '';
-    videos.scene2.style.opacity = '1';
-    showOnly(['scene2']);
-    pauseExcept(['scene2']);
-
-    videos.scene2.currentTime = 0;
-    videos.scene2Idle.load();
+  const startIntro = async () => {
+    if (revision !== sceneRevision) return;
     setPhase('scene2-intro');
-    safePlay(videos.scene2);
-  });
+    const started = await activateBackground('scene2', { restart: true });
+    if (revision !== sceneRevision || phase !== 'scene2-intro') return;
+    if (!started) {
+      finishScene2Intro(revision);
+      return;
+    }
+    cancelVideoCompletion = runWhenVideoCompletes(videos.scene2, scene2Duration * 1000 + 1500, () => finishScene2Intro(revision));
+  };
+  const started = await activateBackground('transition', { restart: true });
+  if (revision !== sceneRevision) return;
+  if (!started) {
+    void startIntro();
+    return;
+  }
+  cancelVideoCompletion = runWhenVideoCompletes(videos.transition, transitionDuration * 1000 + 700, () => void startIntro());
 };
 
 const goScene1 = ({ force = false } = {}) => {
   if (!force && (isLocked || phase === 'transition')) return;
+  const revision = beginSceneChange();
   isLocked = true;
   scene2IdleStarted = true;
   resetScene2Exit();
@@ -329,32 +357,14 @@ const goScene1 = ({ force = false } = {}) => {
   contentTrack.style.transition = 'transform 520ms var(--ease-cinema)';
   contentTrack.style.transform = 'translate3d(0,0,0)';
 
-  videos.transition.pause();
-  videos.scene2.pause();
-  videos.scene2Idle.pause();
-  videos.transition.currentTime = 0;
-  videos.scene2.currentTime = 0;
-  videos.scene2Idle.currentTime = 0;
-  videos.transition.style.opacity = '0';
-  videos.scene2.style.opacity = '0';
-  videos.scene2Idle.style.opacity = '0';
-  videos.scene2.style.transition = '';
-  videos.scene2Idle.style.transition = '';
-  videos.scene1.style.opacity = '1';
-  showOnly(['scene1']);
-  pauseExcept(['scene1']);
-  videos.scene1.currentTime = 0;
-  safePlay(videos.scene1);
+  void activateBackground('scene1', { restart: true });
 
   document.body.dataset.phase = 'scene1';
   setTimeout(() => {
+    if (revision !== sceneRevision) return;
     contentTrack.classList.remove('is-moving');
     contentTrack.style.transition = '';
     contentTrack.style.transform = '';
-    videos.transition.style.opacity = '';
-    videos.scene2.style.opacity = '';
-    videos.scene2Idle.style.opacity = '';
-    videos.scene1.style.opacity = '';
     setPhase('scene1-idle');
     resetProgress();
     isLocked = false;
@@ -365,7 +375,7 @@ const goScene1 = ({ force = false } = {}) => {
   }, 560);
 };
 
-const goScene3 = ({ skipScene2Intro = false, fromScene2Exit = false } = {}) => {
+const goScene3 = ({ skipScene2Intro = false } = {}) => {
   const canEnterFromScene2Intro = skipScene2Intro && phase === 'scene2-intro';
   if (scene2SkipStarted || (!canEnterFromScene2Intro && (isLocked || phase !== 'scene2-idle'))) return;
 
@@ -374,36 +384,24 @@ const goScene3 = ({ skipScene2Intro = false, fromScene2Exit = false } = {}) => {
     scene2IdleStarted = true;
   }
 
+  const revision = beginSceneChange();
   isLocked = true;
   contentTrack.classList.add('is-moving');
-  contentTrack.style.transform = 'translateX(-100vw)';
+  contentTrack.style.transition = `transform ${sceneTrackDuration}ms var(--ease-cinema)`;
+  contentTrack.style.transform = 'translateX(-200vw)';
   setPhase('transition-2-3');
+  void playScene3Intro(revision);
+  setTimeout(() => {
+    if (revision !== sceneRevision) return;
+    setPhase('scene3-idle');
+    contentTrack.classList.remove('is-moving');
+    isLocked = false;
+    scene2SkipStarted = false;
+    resetScene2Exit({ clearTimer: false });
 
-  const outgoingKey = canEnterFromScene2Intro ? 'scene2' : 'scene2Idle';
-  videos[outgoingKey].style.transition = '';
-  videos[outgoingKey].style.opacity = '1';
-
-  setTimeout(async () => {
-    showOnly([outgoingKey]);
-
-    // Fade in scene3 intro first; keep scene2 visible until scene3 is on screen.
-    await playScene3Intro({ holdVisibleKeys: [outgoingKey] });
-
-    // Scroll to scene3
-    contentTrack.style.transition = `transform ${sceneTrackDuration}ms var(--ease-cinema)`;
-    contentTrack.style.transform = 'translateX(-200vw)';
-
-    setTimeout(() => {
-      setPhase('scene3-idle');
-      isLocked = false;
-      scene2SkipStarted = false;
-      resetScene2Exit({ clearTimer: false });
-
-      // Notify gallery system
-      window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 3 } }));
-    }, sceneTrackDuration);
-
-  }, fromScene2Exit ? 0 : (canEnterFromScene2Intro ? 120 : 800));
+    // Notify gallery system
+    window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 3 } }));
+  }, sceneTrackDuration);
 };
 
 const startScene2ExitToScene3 = ({ skipScene2Intro = false } = {}) => {
@@ -414,16 +412,12 @@ const startScene2ExitToScene3 = ({ skipScene2Intro = false } = {}) => {
   isLocked = true;
   scene2Cards?.classList.add('is-leaving');
 
-  const visibleScene2Key = phase === 'scene2-idle' ? 'scene2Idle' : 'scene2';
-  showOnly([visibleScene2Key]);
-  safePlay(videos[visibleScene2Key]);
-
   scene2ExitTimer = window.setTimeout(() => {
     scene2ExitTimer = null;
     const shouldSkipIntro = skipScene2Intro && phase === 'scene2-intro';
     if (!shouldSkipIntro) isLocked = false;
     if (phase === 'scene2-intro') progressBar.style.width = '100%';
-    goScene3({ skipScene2Intro: shouldSkipIntro, fromScene2Exit: true });
+    goScene3({ skipScene2Intro: shouldSkipIntro });
   }, scene2ExitDelay);
 };
 
@@ -443,47 +437,28 @@ const skipScene2AndGoScene1 = () => {
 
 const goBackToScene2 = () => {
   if (isLocked || phase !== 'scene3-idle') return;
+  const revision = beginSceneChange();
   isLocked = true;
   resetScene2Exit();
-
-  // Fade out scene3
-  videos.scene3.style.transition = 'opacity 0.8s ease';
-  videos.scene3Loop.style.transition = 'opacity 0.8s ease';
-  videos.scene3.style.opacity = '0';
-  videos.scene3Loop.style.opacity = '0';
-
+  resetScene3Videos();
+  setPhase('transition-3-2');
+  void activateBackground('scene2Idle', { restart: true });
+  contentTrack.style.transition = `transform ${sceneTrackDuration}ms var(--ease-cinema)`;
+  contentTrack.style.transform = 'translateX(-100vw)';
   setTimeout(() => {
-    resetScene3Videos();
-
-    // Fade in scene2
-    showOnly(['scene2Idle']);
-    videos.scene2Idle.style.display = 'block';
-    videos.scene2Idle.style.opacity = '0';
-    videos.scene2Idle.currentTime = 0;
-    safePlay(videos.scene2Idle);
-
-    requestAnimationFrame(() => {
-      videos.scene2Idle.style.transition = 'opacity 0.8s ease';
-      videos.scene2Idle.style.opacity = '1';
-    });
-
-    // Scroll to scene2
-    contentTrack.style.transition = `transform ${sceneTrackDuration}ms var(--ease-cinema)`;
-    contentTrack.style.transform = 'translateX(-100vw)';
-
-    setTimeout(() => {
-      setPhase('scene2-idle');
-      isLocked = false;
-
-      // Notify gallery system
-      window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 2 } }));
-    }, sceneTrackDuration);
-
-  }, 800);
+    if (revision !== sceneRevision) return;
+    setPhase('scene2-idle');
+    contentTrack.classList.remove('is-moving');
+    isLocked = false;
+    window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 2 } }));
+  }, sceneTrackDuration);
 };
 
 const goScene4 = () => {
   if (isLocked || phase !== 'scene3-idle') return;
+  const revision = beginSceneChange();
+  desiredBackground = null;
+  pauseExcept([]);
   isLocked = true;
   setPhase('transition-3-4');
   contentTrack.classList.add('is-moving');
@@ -491,7 +466,9 @@ const goScene4 = () => {
   contentTrack.style.transform = 'translateX(-300vw)';
 
   setTimeout(() => {
+    if (revision !== sceneRevision) return;
     setPhase('scene4-idle');
+    contentTrack.classList.remove('is-moving');
     videos.scene3.pause();
     videos.scene3Loop.pause();
     progressBar.style.width = '100%';
@@ -502,15 +479,18 @@ const goScene4 = () => {
 
 const goBackToScene3 = () => {
   if (isLocked || phase !== 'scene4-idle') return;
+  const revision = beginSceneChange();
   isLocked = true;
   setPhase('transition-4-3');
-  safePlay(scene3LoopStarted ? videos.scene3Loop : videos.scene3);
+  void activateBackground('scene3Loop');
   contentTrack.classList.add('is-moving');
   contentTrack.style.transition = 'transform 900ms var(--ease-cinema)';
   contentTrack.style.transform = 'translateX(-200vw)';
 
   setTimeout(() => {
+    if (revision !== sceneRevision) return;
     setPhase('scene3-idle');
+    contentTrack.classList.remove('is-moving');
     isLocked = false;
     window.dispatchEvent(new CustomEvent('scene:change', { detail: { scene: 3 } }));
   }, 920);
@@ -664,6 +644,42 @@ const warmUpAutoplay = () => {
   }
 };
 
+Object.entries(videos).forEach(([key, video]) => {
+  let stallTimer;
+  const clearStall = () => clearTimeout(stallTimer);
+  const recover = () => {
+    if (desiredBackground !== key || document.hidden) return;
+    cancelBackgroundPlayback();
+    showPoster(key);
+    showOnly([]);
+    pauseExcept([]);
+    if (key === 'scene2' && phase === 'scene2-intro') finishScene2Intro();
+  };
+  video.addEventListener('error', recover);
+  video.addEventListener('waiting', () => {
+    clearStall();
+    stallTimer = window.setTimeout(() => {
+      if (video.readyState < 3) recover();
+    }, VIDEO_START_TIMEOUT);
+  });
+  video.addEventListener('playing', clearStall);
+  video.addEventListener('pause', clearStall);
+});
+
+let resumeAudioOnVisible = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    resumeAudioOnVisible = Boolean(window.audioControllerInstance?.isPlaying);
+    window.audioControllerInstance?.pause();
+    cancelBackgroundPlayback();
+    pauseExcept([]);
+    return;
+  }
+  if (!isIntroActive && desiredBackground) void activateBackground(desiredBackground);
+  if (resumeAudioOnVisible) void window.audioControllerInstance?.play();
+  resumeAudioOnVisible = false;
+});
+
 introEnterBtn.addEventListener('click', handleEnter);
 enterBtn.addEventListener('click', goScene2);
 window.addEventListener('wheel', handleWheel, { passive: false });
@@ -743,4 +759,5 @@ document.body.dataset.phase = 'scene1';
 setPhase('scene1-idle');
 showOnly(['scene1']);
 warmUpAutoplay();
-frameLoop();
+videos.transition.addEventListener('timeupdate', frameLoop);
+videos.scene2.addEventListener('timeupdate', frameLoop);

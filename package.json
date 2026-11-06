@@ -7,6 +7,10 @@
     "dev": "node static-server.mjs",
     "build": "node scripts/build-static.mjs",
     "preview": "node static-server.mjs dist",
-    "start": "node static-server.mjs dist"
+    "start": "node static-server.mjs dist",
+    "test:server": "node scripts/verify-server.mjs",
+    "test:media": "node scripts/verify-media.mjs",
+    "test:build": "node scripts/verify-media.mjs --production",
+    "test:playback": "node scripts/verify-playback.cjs"
   }
 }

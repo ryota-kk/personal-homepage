@@ -55,6 +55,7 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: url("assets/posters/scene1.jpg") center / cover no-repeat;
   filter: blur(18px) saturate(1.08) brightness(.72);
   transform: scale(1.08);
 }
@@ -146,6 +147,7 @@ button {
 }
 
 .video-stage,
+.scene-fallback,
 .bg-video,
 .cinema-vignette,
 .grain {
@@ -159,6 +161,11 @@ button {
   background: #06070a;
 }
 
+.scene-fallback {
+  z-index: 0;
+  background: #06070a url("assets/posters/scene1.jpg") center / cover no-repeat;
+}
+
 .bg-video {
   width: 100%;
   height: 100%;
@@ -169,10 +176,10 @@ button {
   z-index: 0;
   transform: scale(1.018);
   transition: opacity 680ms ease, transform 1600ms ease, visibility 0s linear 680ms;
-  will-change: opacity, transform;
 }
 
 .bg-video.is-visible {
+  will-change: opacity;
   opacity: 1;
   visibility: visible;
   z-index: 10;
@@ -284,10 +291,10 @@ button {
   width: 200vw;
   height: 100vh;
   transform: translate3d(0,0,0);
-  will-change: transform;
 }
 
 .content-track.is-moving {
+  will-change: transform;
   transition: transform var(--transition-ms) var(--ease-cinema);
 }
 
@@ -1485,6 +1492,7 @@ body[data-phase="scene4-idle"] .contact-reveal {
   }
 
   .video-stage,
+  .scene-fallback,
   .bg-video {
     position: fixed;
     inset: 0;

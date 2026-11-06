@@ -75,7 +75,7 @@ class GalleryCarousel {
     slide.innerHTML = `
       <div class="carousel-slide-content">
         <div class="carousel-image-wrapper">
-          <img data-src="${photo.src}" alt="${photo.title}" class="carousel-image" loading="lazy" />
+          <img data-src="${photo.src}" data-mobile-src="${photo.mobileSrc}" alt="${photo.title}" class="carousel-image" loading="lazy" decoding="async" />
         </div>
         <div class="carousel-info">
           <h2 class="carousel-title">${photo.title}</h2>
@@ -95,17 +95,22 @@ class GalleryCarousel {
 
     const img = slide.querySelector('.carousel-image');
     if (img && img.dataset.src && !img.src) {
-      img.src = img.dataset.src;
+      img.src = window.matchMedia('(max-width: 768px)').matches ? img.dataset.mobileSrc : img.dataset.src;
       img.removeAttribute('data-src');
     }
+    return img;
   }
 
   // 预加载相邻图片
   preloadAdjacentImages() {
-    // 加载当前、前一张、后一张
-    this.loadImage(this.currentIndex);
-    this.loadImage(this.currentIndex - 1);
-    this.loadImage(this.currentIndex + 1);
+    const index = this.currentIndex;
+    const current = this.loadImage(index);
+    // Prioritize the selected photograph before fetching its neighbours.
+    current?.decode().catch(() => {}).then(() => {
+      if (!this.isActive || this.currentIndex !== index) return;
+      this.loadImage(index - 1);
+      this.loadImage(index + 1);
+    });
   }
 
   bindEvents() {

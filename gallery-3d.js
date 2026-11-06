@@ -26,7 +26,11 @@ const PHOTOS = [
   { id: 10, src: 'assets/gallery/photo10.jpg', title: '日落与海', description: '暮色沉入海面，浪声轻轻靠岸，把一天的疲惫都交给黄昏。', date: '2025.09', column: 'right' },
   { id: 11, src: 'assets/gallery/photo11.jpg', title: '一路向海', description: '车轮贴着海风前行，椰影、白沙和远方一起落进夏天。', date: '2025.08', column: 'left' },
   { id: 12, src: 'assets/gallery/photo12.jpg', title: '普洱茶香', description: '灯影温柔，花香与茶香慢慢散开，时光在一盏清茶里安静下来。', date: '2025.07', column: 'right' }
-];
+].map(photo => ({
+  ...photo,
+  src: `assets/gallery/previews/photo${photo.id}-desktop.webp`,
+  mobileSrc: `assets/gallery/previews/photo${photo.id}-mobile.webp`,
+}));
 
 const SCROLL_SPEED = 0.3;
 const CARD_HEIGHT = 220;
@@ -169,7 +173,7 @@ function updatePhotoPositions() {
 }
 
 function startPhotoLoop() {
-  if (rafId) return;
+  if (rafId || document.hidden) return;
 
   function animate() {
     updatePhotoPositions();
@@ -250,6 +254,10 @@ function setupCardHoverEffects() {
 
 document.addEventListener('DOMContentLoaded', () => {
   createPhotoElements();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopPhotoLoop();
+    else if (document.body.dataset.phase === 'scene3') startPhotoLoop();
+  });
 
   window.addEventListener('scene:change', (event) => {
     if (event.detail.scene === 3) {
@@ -264,11 +272,13 @@ window.gallerySystem = {
   getPhotoById: (id) => PHOTOS.find(photo => photo.id === id),
   getAllPhotos: () => PHOTOS,
   pause: () => {
+    stopPhotoLoop();
     pausedColumns.left = true;
     pausedColumns.right = true;
   },
   resume: () => {
     pausedColumns.left = false;
     pausedColumns.right = false;
+    if (document.body.dataset.phase === 'scene3') startPhotoLoop();
   }
 };

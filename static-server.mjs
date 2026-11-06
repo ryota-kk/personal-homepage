@@ -15,6 +15,9 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".mp4": "video/mp4",
+  ".mp3": "audio/mpeg",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
@@ -31,7 +34,19 @@ function resolveRequestPath(urlPath) {
 }
 
 createServer((req, res) => {
-  const filePath = resolveRequestPath(req.url || "/");
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { Allow: 'GET, HEAD' });
+    res.end();
+    return;
+  }
+  let filePath;
+  try {
+    filePath = resolveRequestPath(req.url || "/");
+  } catch {
+    res.writeHead(400);
+    res.end('Bad request');
+    return;
+  }
   if (!filePath) {
     res.writeHead(403);
     res.end("Forbidden");
@@ -41,19 +56,48 @@ createServer((req, res) => {
   try {
     const info = statSync(filePath);
     const finalPath = info.isDirectory() ? join(filePath, "index.html") : filePath;
-    res.writeHead(200, {
+    const size = statSync(finalPath).size;
+    const headers = {
       "Content-Type": types[extname(finalPath).toLowerCase()] || "application/octet-stream",
-    });
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'no-cache',
+      'Content-Length': size,
+    };
+    let start = 0;
+    let end = size - 1;
+    let status = 200;
+    if (req.headers.range) {
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+      let valid = Boolean(range && (range[1] || range[2]) && size > 0);
+      if (valid) {
+        if (!range[1]) {
+          const suffix = Number(range[2]);
+          valid = Number.isSafeInteger(suffix) && suffix > 0;
+          start = Math.max(0, size - suffix);
+        } else {
+          start = Number(range[1]);
+          end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+          valid = Number.isSafeInteger(start) && Number.isSafeInteger(end) && start <= end && start < size;
+        }
+      }
+      if (!valid) {
+        res.writeHead(416, { 'Content-Range': `bytes */${size}`, 'Content-Length': 0 });
+        res.end();
+        return;
+      }
+      status = 206;
+      headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+      headers['Content-Length'] = end - start + 1;
+    }
+    res.writeHead(status, headers);
     if (req.method === "HEAD") {
       res.end();
       return;
     }
-    createReadStream(finalPath)
-      .on("error", () => {
-        if (!res.headersSent) res.writeHead(500);
-        res.end("Server error");
-      })
-      .pipe(res);
+    const stream = createReadStream(finalPath, size > 0 ? { start, end } : undefined);
+    stream.on('error', () => res.destroy());
+    res.on('close', () => stream.destroy());
+    stream.pipe(res);
   } catch {
     res.writeHead(404);
     res.end("Not found");

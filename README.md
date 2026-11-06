@@ -90,7 +90,21 @@ The Formspree endpoint is a public form endpoint configured in `script.js`. Do n
 
 An `.env.example` file is included for future optional deployment settings.
 
-## Current Status
+## Media Delivery And Verification
+
+Original videos and gallery photographs are retained in the source repository. The production build excludes those originals and ships the generated desktop/mobile videos, static posters, thumbnails, and WebP gallery previews. Videos load when their scene is requested. Navigation remains available when playback is blocked or a media request fails.
+
+Generated delivery files are included in the repository; Vercel does not need FFmpeg. To regenerate them locally with FFmpeg available on PATH:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/optimize-media.ps1
+```
+
+Run the HTTP media checks with `npm run test:server` and verify generated assets with `npm run test:media`. After building, run `npm run test:build` to check deployment references and source-file exclusions. Browser regression checks use Playwright and Microsoft Edge. Install Playwright locally with `npm install --no-save --package-lock=false playwright`, or point the `PLAYWRIGHT_MODULE` environment variable to an existing installation, then run `npm run test:playback`.
+
+The browser checks cover stalled music, blocked playback, failed looping videos, stale video responses, project modals, and desktop/mobile scene navigation. Failed videos use extracted scene posters. Hidden tabs pause media and gallery animation.
+
+## Current Scenes
 
 - Scene1: intro and home scene
 - Scene2: project cards and project detail overlay

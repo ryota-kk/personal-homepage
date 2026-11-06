@@ -12,6 +12,7 @@ class AudioSpectrumEffect {
     this.audioSource = null;
     this.audioElement = null;
     this.isPlaying = false;
+    this.playAttempt = 0;
 
     this.canvasWidth = 0;
     this.canvasHeight = 0;
@@ -156,6 +157,7 @@ class AudioSpectrumEffect {
     if (!this.audioElement) {
       this.audioElement = new Audio();
       this.audioElement.crossOrigin = 'anonymous';
+      this.audioElement.preload = 'none';
     }
 
     this.audioElement.src = audioUrl;
@@ -170,23 +172,39 @@ class AudioSpectrumEffect {
   async play() {
     if (!this.audioElement) {
       console.warn('No audio loaded');
-      return;
+      return false;
     }
-
+    const attempt = ++this.playAttempt;
+    let timer;
     try {
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+      const playback = (async () => {
+        if (this.audioContext?.state === 'suspended') await this.audioContext.resume();
+        if (attempt !== this.playAttempt) return false;
+        await this.audioElement.play();
+        return attempt === this.playAttempt;
+      })();
+      const started = await Promise.race([
+        playback,
+        new Promise(resolve => { timer = setTimeout(() => resolve(false), 4000); }),
+      ]);
+      if (!started) {
+        if (attempt === this.playAttempt) this.pause();
+        return false;
       }
-
-      await this.audioElement.play();
       this.isPlaying = true;
       this.startAnimation();
+      return true;
     } catch (error) {
-      console.error('Audio playback failed:', error);
+      if (attempt === this.playAttempt) this.pause();
+      console.warn('Audio playback unavailable:', error);
+      return false;
+    } finally {
+      clearTimeout(timer);
     }
   }
 
   pause() {
+    this.playAttempt += 1;
     if (this.audioElement) {
       this.audioElement.pause();
       this.isPlaying = false;
